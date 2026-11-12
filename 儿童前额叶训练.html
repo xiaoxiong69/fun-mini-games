@@ -1,0 +1,2912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FDF6F0">
+<title>小小脑袋训练营 · 儿童认知游戏</title>
+<style>
+/* =========================================================================
+   一、全局样式
+   低饱和马卡龙配色，全圆角，无高频动画，无红色紧张元素
+   ========================================================================= */
+:root{
+  --bg:        #FDF6F0;   /* 奶油底色 */
+  --card:      #FFFFFF;
+  --ink:       #5B4E46;   /* 柔和深棕，比纯黑温柔 */
+  --ink-soft:  #9C8E85;
+  --mint:      #CFE9DE;
+  --mint-deep: #8FC9B3;
+  --peach:     #FBE0D4;
+  --peach-deep:#F0B79E;
+  --lilac:     #E4DCF2;
+  --lilac-deep:#B7A6D9;
+  --sky:       #D8EAF5;
+  --sky-deep:  #9CC4DC;
+  --butter:    #FBEFC9;
+  --butter-deep:#E8CF87;
+  --shadow:    0 6px 18px rgba(150,130,115,.12);
+  --radius:    26px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+html,body{
+  height:100%;
+  overflow:hidden;
+  overflow-x:hidden;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",-apple-system,sans-serif;
+  font-size:16px;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:manipulation;
+}
+
+#app{
+  position:relative;
+  width:100%;height:100%;
+  max-width:560px;
+  margin:0 auto;
+  overflow:hidden;
+}
+
+/* ---------- 屏幕切换：淡入 + 轻微上移 ---------- */
+.screen{
+  position:absolute;inset:0;
+  padding:20px 18px;
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  opacity:0;visibility:hidden;
+  transform:translateY(10px);
+  transition:opacity .32s ease,transform .32s ease,visibility .32s;
+}
+.screen.active{opacity:1;visibility:visible;transform:translateY(0);}
+
+/* ---------- 通用组件 ---------- */
+.btn{
+  min-height:56px;
+  border:none;border-radius:22px;
+  font-size:19px;font-weight:700;
+  color:var(--ink);
+  background:var(--card);
+  box-shadow:var(--shadow);
+  cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease;
+  padding:14px 18px;
+  font-family:inherit;
+}
+.btn:active{transform:scale(.95);box-shadow:0 3px 10px rgba(150,130,115,.14);}
+.btn.primary{background:var(--mint);}
+.btn.peach{background:var(--peach);}
+.btn.lilac{background:var(--lilac);}
+.btn.sky{background:var(--sky);}
+.btn.big{min-height:76px;font-size:22px;border-radius:26px;}
+
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:18px;
+  max-width:100%;
+}
+
+.title{font-size:24px;font-weight:800;letter-spacing:1px;}
+.sub{font-size:15px;color:var(--ink-soft);line-height:1.7;}
+
+/* ---------- 顶部静音按钮 ---------- */
+#muteBtn{
+  position:fixed;top:14px;right:14px;z-index:60;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--card);box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;cursor:pointer;
+  transition:transform .12s ease;
+}
+#muteBtn:active{transform:scale(.92);}
+
+/* ---------- 语音字幕条（顶部浮动，避免遮挡底部按钮） ---------- */
+#subtitle{
+  position:fixed;left:50%;top:6px;transform:translate(-50%,-10px);
+  max-width:64%;
+  background:rgba(255,255,255,.96);
+  border-radius:18px;padding:10px 18px;
+  font-size:17px;line-height:1.5;text-align:center;
+  box-shadow:var(--shadow);
+  opacity:0;transition:opacity .25s,transform .25s;
+  pointer-events:none;z-index:55;
+}
+#subtitle.show{opacity:1;transform:translate(-50%,0);}
+/* 训练页/自由游戏页顶部有关卡标题，字幕要往下让，避免盖住「第 X 关」 */
+body[data-screen="scr-train"] #subtitle,
+body[data-screen="scr-play"] #subtitle{ top:78px; }
+
+/* ---------- 横屏提示 ---------- */
+#rotateTip{
+  position:fixed;inset:0;z-index:999;
+  background:var(--bg);
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:18px;font-size:22px;font-weight:700;
+}
+@media (orientation:landscape) and (max-height:520px){
+  #rotateTip{display:flex;}
+}
+.rotate-face{font-size:56px;animation:rock 2.4s ease-in-out infinite;}
+@keyframes rock{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+
+/* ---------- 弹窗 ---------- */
+#modalMask{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(90,78,70,.28);
+  display:none;align-items:center;justify-content:center;
+  padding:24px;
+}
+#modalMask.show{display:flex;}
+.modal{
+  width:100%;max-width:420px;
+  background:var(--card);border-radius:26px;
+  padding:24px 20px;
+  box-shadow:0 12px 40px rgba(120,100,90,.2);
+  animation:pop .22s ease;
+}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{font-size:20px;margin-bottom:12px;}
+.modal p{font-size:16px;line-height:1.7;color:var(--ink-soft);margin-bottom:18px;}
+.modal .row{display:flex;gap:12px;}
+.modal .row .btn{flex:1;}
+
+/* ---------- 首页 ---------- */
+.home-wrap{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  min-height:100%;gap:14px;text-align:center;
+}
+.home-face{
+  font-size:76px;line-height:1;
+  animation:float 3.6s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.home-title{font-size:28px;font-weight:800;letter-spacing:2px;margin-top:6px;}
+.home-sub{font-size:15px;color:var(--ink-soft);margin-bottom:10px;}
+.home-btns{display:flex;flex-direction:column;gap:14px;width:100%;max-width:340px;}
+
+/* ---------- 星星 ---------- */
+.star-big{font-size:64px;display:inline-block;animation:starPop .8s ease;}
+@keyframes starPop{0%{transform:scale(0) rotate(-40deg);opacity:0}70%{transform:scale(1.18) rotate(8deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+
+/* ---------- 训练页 ---------- */
+.train-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 2px 10px;flex-shrink:0;
+  padding-right:64px;   /* 给右上角全局静音按钮让位，避免遮挡 */
+}
+.train-step{font-size:15px;color:var(--ink-soft);}
+.train-name{font-size:19px;font-weight:800;}
+.softbar{
+  height:8px;border-radius:99px;background:#EFE6DF;overflow:hidden;flex-shrink:0;
+}
+.softbar > i{
+  display:block;height:100%;width:0;border-radius:99px;
+  background:var(--mint-deep);transition:width .6s linear;
+}
+.game-host{
+  flex:1;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;
+  padding:10px 0;min-height:0;
+}
+
+/* ---------- 找不一样网格 ---------- */
+.spot-grid{
+  display:grid;gap:10px;width:100%;
+  justify-content:center;
+}
+.spot-cell{
+  aspect-ratio:1/1;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--card);border-radius:18px;
+  font-size:34px;box-shadow:var(--shadow);
+  cursor:pointer;transition:transform .12s ease;
+}
+.spot-cell:active{transform:scale(.9);}
+.spot-cell.found{background:var(--butter);transform:scale(1.06);}
+
+/* 窄屏兜底：6 列时单格会小于 48px 的儿童点击标准，降到 3 列。
+   3 列能整除 12 和 18，两种难度都不会出现残缺的末行。 */
+@media (max-width:380px){
+  .spot-grid{grid-template-columns:repeat(3, 1fr) !important;}
+  .spot-cell{font-size:30px;}
+  .schulte-cell{font-size:13px;}
+}
+
+/* ---------- Go/NoGo ---------- */
+.gonogo-stage{
+  width:min(74vw,300px);aspect-ratio:1/1;
+  border-radius:36px;background:var(--card);
+  box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:96px;transition:background .2s;
+}
+.gonogo-stage.hit{background:var(--butter);}
+.gonogo-stage.bomb{background:var(--peach);}
+/* 失误时用柔和的蜜桃色轻提示，不用红色、不做闪烁 */
+.gonogo-stage.oops{background:var(--peach);}
+
+/* ---------- 记忆卡片 ---------- */
+.mem-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.mem-card{
+  width:74px;height:96px;border-radius:16px;
+  background:var(--card);box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;cursor:pointer;
+  transition:transform .15s,background .2s;
+}
+.mem-card:active{transform:scale(.94);}
+.mem-card.picked{outline:4px solid var(--mint-deep);outline-offset:-4px;background:var(--mint);}
+
+/* 记住卡片：展示阶段——间距更宽松，卡片与候选区等大 */
+.mem-targets{gap:12px;margin-top:6px;}
+.mem-card.target{width:78px;height:104px;font-size:36px;}
+
+/* 记住卡片：候选区——固定 3 列，5/7/9 张都能排得整齐 */
+.mem-candidates{
+  display:grid;grid-template-columns:repeat(3, 78px);
+  justify-content:center;gap:12px;width:100%;
+}
+.mem-candidates .mem-card{width:78px;height:104px;font-size:36px;}
+
+/* 自由模式的档位切换条 */
+.mem-seg{margin-bottom:12px;width:100%;max-width:360px;}
+
+/* 记忆游戏的纵向容器 */
+.mem-zone{
+  width:100%;display:flex;flex-direction:column;
+  align-items:center;gap:10px;
+}
+
+/* ---------- 换玩法 ---------- */
+.switch-item{
+  width:min(64vw,240px);aspect-ratio:1/1;
+  border-radius:36px;background:var(--card);
+  box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:96px;cursor:pointer;
+  transition:transform .12s;
+}
+.switch-item:active{transform:scale(.94);}
+.rule-banner{
+  font-size:18px;font-weight:800;
+  background:var(--sky);border-radius:18px;
+  padding:10px 20px;margin-bottom:14px;
+}
+
+/* ---------- 排排队 ---------- */
+.seq-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.seq-card{
+  width:72px;height:92px;border-radius:16px;
+  background:var(--card);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;font-size:30px;cursor:pointer;
+  transition:transform .15s,background .2s;
+  padding:4px;
+}
+.seq-card small{font-size:11px;color:var(--ink-soft);line-height:1.1;text-align:center;}
+.seq-card:active{transform:scale(.94);}
+.seq-card.sel{outline:4px solid var(--peach-deep);outline-offset:-4px;background:var(--peach);}
+.seq-drop{outline:3px dashed var(--mint-deep);}
+
+/* ---------- 猜心情 ---------- */
+.mood-face{font-size:104px;margin:6px 0 4px;}
+.mood-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:380px;}
+.mood-opt{
+  min-height:64px;border-radius:20px;background:var(--card);
+  box-shadow:var(--shadow);border:none;font-family:inherit;
+  font-size:19px;font-weight:700;color:var(--ink);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:transform .12s;
+}
+.mood-opt:active{transform:scale(.95);}
+.mood-opt.wrong{background:#F6EDE7;}
+
+/* ---------- 舒尔特方格 ---------- */
+.schulte-grid{display:grid;gap:6px;width:100%;}
+.schulte-cell{
+  aspect-ratio:1/1;border-radius:14px;
+  background:var(--card);box-shadow:0 3px 8px rgba(150,130,115,.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:800;cursor:pointer;
+  transition:transform .1s,background .2s;
+  font-variant-numeric:tabular-nums;
+}
+.schulte-cell:active{transform:scale(.92);}
+.schulte-cell.done{background:var(--mint);color:var(--mint-deep);}
+.schulte-timer{
+  font-size:17px;color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- 休息页 ---------- */
+.rest-sky{
+  position:relative;flex:1;overflow:hidden;
+  border-radius:26px;background:linear-gradient(180deg,#E8F3FB 0%,#FDF6F0 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.cloud{
+  position:absolute;font-size:54px;opacity:.85;
+  animation:drift linear infinite;
+}
+@keyframes drift{
+  from{transform:translateX(-30vw)}
+  to{transform:translateX(110vw)}
+}
+.bird{
+  position:absolute;font-size:26px;opacity:.7;
+  animation:fly linear infinite;
+}
+@keyframes fly{
+  from{transform:translate(-20vw,0)}
+  to{transform:translate(110vw,-40px)}
+}
+.rest-text{font-size:22px;font-weight:800;z-index:2;text-align:center;line-height:1.8;}
+.rest-sub{font-size:15px;color:var(--ink-soft);z-index:2;margin-top:8px;}
+.rest-bar{
+  position:absolute;left:12%;right:12%;bottom:22px;
+  height:6px;border-radius:99px;background:rgba(255,255,255,.7);overflow:hidden;
+}
+.rest-bar > i{
+  display:block;height:100%;width:0;background:var(--mint-deep);
+  border-radius:99px;transition:width .5s linear;
+}
+
+/* ---------- 结束页 ---------- */
+.end-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100%;gap:12px;text-align:center;
+}
+.end-stars{font-size:20px;color:var(--butter-deep);letter-spacing:4px;}
+
+/* ---------- 星星本 ---------- */
+.star-day{
+  display:flex;align-items:center;gap:14px;
+  padding:14px;border-radius:20px;background:var(--card);
+  box-shadow:var(--shadow);margin-bottom:12px;
+}
+.star-day .d{font-size:14px;color:var(--ink-soft);width:74px;flex-shrink:0;}
+.star-day .s{font-size:22px;letter-spacing:2px;}
+.star-day .sum{font-size:14px;color:var(--ink-soft);line-height:1.5;flex:1;}
+
+/* ---------- 自由游戏列表 ---------- */
+.game-list{display:flex;flex-direction:column;gap:12px;}
+.game-item{
+  display:flex;align-items:center;gap:14px;
+  padding:16px 18px;border-radius:22px;background:var(--card);
+  box-shadow:var(--shadow);cursor:pointer;
+  transition:transform .12s;
+}
+.game-item:active{transform:scale(.97);}
+.game-item .ico{font-size:30px;width:40px;text-align:center;}
+.game-item .nm{font-size:18px;font-weight:700;}
+.game-item .ds{font-size:13px;color:var(--ink-soft);}
+
+/* ---------- 设置页 ---------- */
+.set-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:16px 0;border-bottom:1px solid #F1E9E3;
+  min-width:0;
+}
+.set-row > div:first-child{flex:1;min-width:0;}
+.set-row:last-child{border-bottom:none;}
+.set-label{font-size:16px;font-weight:700;}
+.set-desc{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
+.switch{
+  width:56px;height:32px;border-radius:99px;background:#E7DED7;
+  position:relative;flex-shrink:0;cursor:pointer;transition:background .2s;
+}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;
+  width:26px;height:26px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.12);transition:left .2s;
+}
+.switch.on{background:var(--mint-deep);}
+.switch.on::after{left:27px;}
+.seg{display:flex;gap:8px;background:#F3EBE5;border-radius:16px;padding:4px;}
+.seg button{
+  flex:1;min-height:44px;border:none;border-radius:12px;background:transparent;
+  font-family:inherit;font-size:15px;font-weight:700;color:var(--ink-soft);
+  cursor:pointer;transition:background .2s,color .2s;
+}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.06);}
+
+/* ---------- 长按退出热区 ---------- */
+#exitHot{
+  position:fixed;top:0;left:0;width:88px;height:88px;z-index:80;
+  display:none;align-items:center;justify-content:center;
+}
+#exitHot.show{display:flex;}
+/* 【修复 P2-1】长按退出提示：由"无限旋转的圈"改成"3 秒走满的进度条"，
+   让大人能一眼看出还要按多久（原旋转动画看不出进度，也不知道按没按对） */
+#exitRing{
+  width:12px;height:56px;border-radius:99px;
+  background:rgba(160,140,125,.22);
+  position:relative;overflow:hidden;
+}
+#exitRing.run::after{
+  content:"";position:absolute;left:0;right:0;top:0;height:0;
+  background:var(--mint-deep);border-radius:99px;
+  animation:exitfill 3s linear forwards;
+}
+@keyframes exitfill{from{height:0}to{height:100%}}
+
+/* ---------- 空白占位 ---------- */
+.spacer{flex:1;}
+.center{text-align:center;}
+.mt{margin-top:14px;}
+.mb{margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- 横屏提示 -->
+  <div id="rotateTip">
+    <div class="rotate-face">📱</div>
+    <div>请竖屏使用哦</div>
+  </div>
+
+  <!-- 全局静音 -->
+  <div id="muteBtn" title="声音开关">🔊</div>
+
+  <!-- 语音字幕 -->
+  <div id="subtitle"></div>
+
+  <!-- 长按退出热区（仅训练中显示） -->
+  <div id="exitHot"><div id="exitRing"></div></div>
+
+  <!-- ========== 首页 ========== -->
+  <div class="screen active" id="scr-home">
+    <div class="home-wrap">
+      <div class="home-face">🐻</div>
+      <div class="home-title">小小脑袋训练营</div>
+      <div class="home-sub">每天 25 分钟，和大脑做游戏</div>
+      <div class="home-btns">
+        <button class="btn big primary" id="btnStart">开始今日训练</button>
+        <button class="btn big lilac" id="btnStars">查看我的星星本</button>
+        <button class="btn big peach" id="btnSchulte">数字舒尔特</button>
+        <button class="btn big sky" id="btnSettings">家长设置</button>
+      </div>
+      <div class="spacer"></div>
+      <div class="sub" style="font-size:12px;opacity:.75;text-align:center;padding-bottom:6px;">
+        记录只保存在本机浏览器里 · 清除缓存会丢失
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 家长设置 ========== -->
+  <div class="screen" id="scr-settings">
+    <div class="title mb">家长设置</div>
+    <div id="settingsBody" style="flex:1;"></div>
+    <button class="btn mt" id="btnSettingsBack">返回首页</button>
+  </div>
+
+  <!-- ========== 星星本 ========== -->
+  <div class="screen" id="scr-stars">
+    <div class="title mb">我的星星本</div>
+    <div id="starsBody" style="flex:1;"></div>
+    <button class="btn mt" id="btnStarsBack">返回首页</button>
+  </div>
+
+  <!-- ========== 自由游戏选择 ========== -->
+  <div class="screen" id="scr-free">
+    <div class="title mb">自由游戏</div>
+    <div class="sub mb">想玩哪个都可以，不算今天的训练哦</div>
+    <div id="freeList" style="flex:1;"></div>
+    <button class="btn mt" id="btnFreeBack">返回首页</button>
+  </div>
+
+  <!-- ========== 训练流程 ========== -->
+  <div class="screen" id="scr-train">
+    <div class="train-top">
+      <div>
+        <div class="train-step" id="trainStep">第 1 关 / 6</div>
+        <div class="train-name" id="trainName">找不一样</div>
+      </div>
+      <div class="sub" id="trainHint" style="text-align:right;max-width:52%;"></div>
+    </div>
+    <div class="softbar"><i id="trainBar"></i></div>
+    <div class="game-host" id="trainHost"></div>
+  </div>
+
+  <!-- ========== 休息页 ========== -->
+  <div class="screen" id="scr-rest">
+    <div class="rest-sky">
+      <div class="cloud" style="top:14%;animation-duration:26s;">☁️</div>
+      <div class="cloud" style="top:32%;animation-duration:34s;animation-delay:-8s;font-size:40px;">☁️</div>
+      <div class="cloud" style="top:52%;animation-duration:44s;animation-delay:-18s;font-size:66px;">☁️</div>
+      <div class="bird" style="top:22%;animation-duration:18s;">🐦</div>
+      <div class="bird" style="top:40%;animation-duration:24s;animation-delay:-9s;font-size:20px;">🐤</div>
+      <div class="rest-text">休息一下，眨眨眼睛</div>
+      <div class="rest-sub">我们马上继续</div>
+      <div class="rest-bar"><i id="restBar"></i></div>
+    </div>
+  </div>
+
+  <!-- ========== 训练结束 ========== -->
+  <div class="screen" id="scr-end">
+    <div class="end-wrap" id="endBody"></div>
+  </div>
+
+  <!-- ========== 自由游戏容器 ========== -->
+  <div class="screen" id="scr-play">
+    <div class="train-top">
+      <div>
+        <div class="train-step" id="playStep">自由游戏</div>
+        <div class="train-name" id="playName">找不一样</div>
+      </div>
+      <button class="btn" id="btnPlayBack" style="min-height:44px;font-size:15px;padding:8px 16px;">返回</button>
+    </div>
+    <div class="game-host" id="playHost"></div>
+  </div>
+
+  <!-- 弹窗 -->
+  <div id="modalMask">
+    <div class="modal" id="modalBox"></div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   二、全局错误兜底
+   任何未捕获异常都显示友好提示，绝不留白屏
+   ========================================================================= */
+window.addEventListener('error', function(e){
+  console.error(e.error || e.message);
+  showFatal();
+});
+window.addEventListener('unhandledrejection', function(e){
+  console.error(e.reason);
+  showFatal();
+});
+let fatalShown = false;
+function showFatal(){
+  if (fatalShown) return;
+  fatalShown = true;
+  try{
+    const box = document.getElementById('modalBox');
+    document.getElementById('modalMask').classList.add('show');
+    box.innerHTML = '<h3>哎呀</h3><p>遇到小问题啦，请刷新页面重新开始哦</p>'
+      + '<div class="row"><button class="btn primary" onclick="location.reload()">刷新一下</button></div>';
+  }catch(_){}
+}
+
+/* =========================================================================
+   三、本地存储层
+   所有数据只在本机浏览器，不上传、不登录
+   ========================================================================= */
+const LS = {
+  SETTINGS : 'kc_settings_v1',
+  PROGRESS : 'kc_progress_v1',
+  HISTORY  : 'kc_history_v1',
+  TOTAL    : 'kc_total_stars_v1',
+  POOL     : 'kc_pool_v1'
+};
+
+function lsGet(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const v = JSON.parse(raw);
+    return (v === null || v === undefined) ? fallback : v;
+  }catch(e){
+    return fallback;
+  }
+}
+function lsSet(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ /* 隐私模式可能失败 */ }
+}
+
+/* ---------- 设置 ---------- */
+const Settings = {
+  data: {
+    difficulty : 'easy',   // easy | hard（全局难度）
+    voice      : true,     // 语音播报
+    muted      : false,    // 全局静音（优先级最高）
+    freeGame   : false,    // 自由游戏解锁
+    /* 记住卡片的独立难度：easy(3/5) | normal(4/7) | hard(5/9)
+       自由游戏里切换档位会写这里；每日训练是否可用困难档由下面的开关决定 */
+    memoryCardDifficulty : 'easy',
+    /* 记住卡片自定义难度开关：关闭时每日训练按全局难度映射，开启后可用困难档 */
+    memoryCardCustom     : false
+  },
+  load(){
+    this.data = Object.assign({}, this.data, lsGet(LS.SETTINGS, {}));
+    return this.data;
+  },
+  save(){
+    lsSet(LS.SETTINGS, this.data);
+  },
+  get(k){ return this.data[k]; },
+  set(k, v){
+    this.data[k] = v;
+    this.save();
+  }
+};
+
+/* ---------- 训练进度 ---------- */
+const Progress = {
+  data: {
+    date       : null,   // 'YYYY-MM-DD'
+    moduleIndex: 0,      // 已完成模块数 0..6
+    startedAt  : 0
+  },
+  load(){
+    this.data = Object.assign({}, this.data, lsGet(LS.PROGRESS, {}));
+    return this.data;
+  },
+  save(){ lsSet(LS.PROGRESS, this.data); },
+  clear(){
+    this.data = { date:null, moduleIndex:0, startedAt:0 };
+    lsSet(LS.PROGRESS, this.data);
+  }
+};
+
+/* ---------- 历史与星星 ---------- */
+const History = {
+  list: [],
+  load(){
+    this.list = lsGet(LS.HISTORY, []);
+    if (!Array.isArray(this.list)) this.list = [];
+    return this.list;
+  },
+  save(){ lsSet(LS.HISTORY, this.list); },
+  /* 只保留最近 30 天 */
+  push(rec){
+    this.list = this.list.filter(x => x.date !== rec.date);
+    this.list.push(rec);
+    this.list.sort((a,b) => a.date < b.date ? 1 : -1);
+    if (this.list.length > 30) this.list = this.list.slice(0, 30);
+    this.save();
+  },
+  has(date){
+    return this.list.some(x => x.date === date);
+  }
+};
+
+const Stars = {
+  get total(){ return lsGet(LS.TOTAL, 0); },
+  add(n){
+    const v = this.total + n;
+    lsSet(LS.TOTAL, v);
+    return v;
+  },
+  reset(){ lsSet(LS.TOTAL, 0); }
+};
+
+/* ---------- 题库去重记录：每个游戏近 7 天出现过的题号 ---------- */
+const Pool = {
+  data: {},
+  load(){
+    this.data = lsGet(LS.POOL, {});
+    if (typeof this.data !== 'object' || !this.data) this.data = {};
+    return this.data;
+  },
+  save(){ lsSet(LS.POOL, this.data); },
+
+  /* 取某游戏最近 7 天的题号集合（已按时间清理） */
+  recent(gameKey, now){
+    const rec = this.data[gameKey] || [];
+    const cutoff = now - 7 * 24 * 3600 * 1000;
+    const kept = rec.filter(x => x.t >= cutoff);
+    this.data[gameKey] = kept;
+    return new Set(kept.map(x => x.id));
+  },
+
+  mark(gameKey, id, now){
+    const rec = this.data[gameKey] || [];
+    const cutoff = now - 7 * 24 * 3600 * 1000;
+    const kept = rec.filter(x => x.t >= cutoff);
+    kept.push({ id: id, t: now });
+    this.data[gameKey] = kept;
+    this.save();
+  },
+
+  /**
+   * 通用的"优先抽 7 天内没出现过的题"算法
+   * @param {Array} items  带 id 字段的题目数组
+   * @param {number} count 需要抽几个
+   * @returns {Array} 抽中的题目
+   */
+  pick(items, count, gameKey){
+    const now = Date.now();
+    const recent = this.recent(gameKey, now);
+    const fresh = items.filter(x => !recent.has(x.id));
+    const old   = items.filter(x =>  recent.has(x.id));
+    const out = [];
+
+    // 先尽量从没出现过的里面取
+    shuffle(fresh);
+    while (out.length < count && fresh.length) out.push(fresh.pop());
+
+    // 不够就用出现过的补（避免报错）
+    if (out.length < count){
+      shuffle(old);
+      while (out.length < count && old.length) out.push(old.pop());
+    }
+    out.forEach(x => this.mark(gameKey, x.id, now));
+    return out;
+  }
+};
+
+/* =========================================================================
+   四、工具函数
+   ========================================================================= */
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function randInt(min, max){          // 含两端
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function pickOne(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+function todayStr(){
+  const d = new Date();
+  const p = n => (n < 10 ? '0' + n : '' + n);
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function fmtDate(s){  // '2026-11-12' -> '11月12日'
+  const p = s.split('-');
+  return parseInt(p[1], 10) + '月' + parseInt(p[2], 10) + '日';
+}
+
+/* =========================================================================
+   五、语音播报管理器
+   - 全局静音 > 语音开关
+   - 单条队列，同时只播一条
+   - 页面切换时立刻停止并清空
+   - 不支持时静默降级为纯文字
+   ========================================================================= */
+const TTS = {
+  supported : (typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined'),
+  queue     : [],
+  speaking  : false,
+  voice     : null,
+  subtitleEl: null,
+
+  init(){
+    this.subtitleEl = document.getElementById('subtitle');
+    if (!this.supported) return;
+    this.pickVoice();
+    // 某些浏览器语音列表是异步加载的
+    if (window.speechSynthesis.onvoiceschanged !== undefined){
+      window.speechSynthesis.onvoiceschanged = () => this.pickVoice();
+    }
+  },
+
+  pickVoice(){
+    try{
+      const list = window.speechSynthesis.getVoices() || [];
+      if (!list.length) return;
+      const zh = list.filter(v => /zh|Chinese|中文/i.test(v.lang) || /Chinese|中文/i.test(v.name));
+      // 优先女声关键词
+      const female = zh.filter(v => /female|woman|女|Xiaoxiao|Xiaoyi|Yaoyao|Huihui|Tingting/i.test(v.name));
+      this.voice = female[0] || zh[0] || list[0];
+    }catch(e){ /* 忽略 */ }
+  },
+
+  canSpeak(){
+    if (!this.supported) return false;
+    if (Settings.get('muted')) return false;      // 全局静音优先
+    if (!Settings.get('voice')) return false;     // 语音开关
+    return true;
+  },
+
+  /**
+   * 说一句话（进入队列）
+   * @param {string} text  要播报的文字
+   * @param {object} opt   {interrupt:true 会清空队列优先播这句}
+   */
+  say(text, opt){
+    opt = opt || {};
+    if (!text) return;
+    // 无论是否静音，都把文字显示在字幕条上（静音时纯文字运行）
+    this.showSubtitle(text);
+
+    if (!this.canSpeak()) return;
+
+    if (opt.interrupt){
+      this.queue.length = 0;
+      this.stop();
+    }
+    this.queue.push(text);
+    this.drain();
+  },
+
+  drain(){
+    if (this.speaking || !this.queue.length) return;
+    if (!this.canSpeak()){ this.queue.length = 0; return; }
+
+    const text = this.queue.shift();
+    this.speaking = true;
+    try{
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'zh-CN';
+      u.rate = 0.9;      // 偏慢，适合孩子
+      u.pitch = 1.05;
+      u.volume = 1;
+      if (this.voice) u.voice = this.voice;
+      u.onend = () => { this.speaking = false; this.drain(); };
+      u.onerror = () => { this.speaking = false; this.drain(); };
+      window.speechSynthesis.speak(u);
+    }catch(e){
+      this.speaking = false;
+    }
+  },
+
+  stop(){
+    if (!this.supported) return;
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+    this.speaking = false;
+  },
+
+  /* 切页面时调用：立刻停声 + 清队列 + 隐藏字幕 */
+  reset(){
+    this.queue.length = 0;
+    this.stop();
+    if (this.subtitleEl){
+      this.subtitleEl.classList.remove('show');
+      this.subtitleEl.textContent = '';
+    }
+  },
+
+  /* 字幕条（静音时也能看到文字） */
+  showSubtitle(text){
+    if (!this.subtitleEl) return;
+    this.subtitleEl.textContent = text;
+    this.subtitleEl.classList.add('show');
+    clearTimeout(this._subTimer);
+    this._subTimer = setTimeout(() => {
+      this.subtitleEl.classList.remove('show');
+    }, Math.max(1800, Math.min(6000, text.length * 260)));
+  }
+};
+
+/* =========================================================================
+   六、计时器（页面隐藏自动暂停）
+   ========================================================================= */
+const PageState = { hidden: false };
+document.addEventListener('visibilitychange', function(){
+  PageState.hidden = document.hidden;
+  if (document.hidden){
+    TTS.stop();                    // 切后台先闭嘴
+    Timers.pauseAll();
+  }else{
+    Timers.resumeAll();
+  }
+});
+
+/**
+ * 可暂停计时器
+ * 使用累加式计时（只累计"可见且运行中"的时间），页面隐藏时自动跳过
+ */
+class Ticker{
+  constructor(interval, onTick){
+    this.interval = interval || 100;
+    this.onTick = onTick || function(){};
+    this.elapsed = 0;        // 已累计毫秒
+    this.running = false;
+    this._last = 0;
+    this._id = null;
+    Timers.list.push(this);
+  }
+  start(){
+    if (this.running) return;
+    this.running = true;
+    this._last = performance.now();
+    this._id = setInterval(() => this._tick(), this.interval);
+  }
+  _tick(){
+    if (!this.running) return;
+    const now = performance.now();
+    const dt = now - this._last;
+    this._last = now;
+    if (!PageState.hidden){
+      this.elapsed += dt;
+      try{ this.onTick(this.elapsed); }catch(e){ console.error(e); }
+    }
+  }
+  pause(){ this.running = false; if (this._id){ clearInterval(this._id); this._id = null; } }
+  resume(){ if (!this.running) this.start(); }
+  stop(){
+    this.pause();
+    const i = Timers.list.indexOf(this);
+    if (i >= 0) Timers.list.splice(i, 1);
+  }
+}
+
+const Timers = {
+  list: [],
+  pauseAll(){ this.list.forEach(t => t.pause()); },
+  /* 【修复 P0-1】pause() 会把 running 置 false，旧的 if(t.running) 判断导致切后台后
+     计时器永久无法恢复。已 stop() 的 ticker 会被移出 list，所以这里可以无条件 resume。 */
+  resumeAll(){ this.list.forEach(t => t.resume()); },
+  killAll(){
+    this.list.slice().forEach(t => { try{ t.stop(); }catch(e){} });
+    this.list.length = 0;
+  }
+};
+
+/* 【新增 P1-2】可暂停的等待：页面隐藏（息屏 / 切微信）时不计时，回来继续。
+   用于"记住卡片展示 5 秒""模块规则引导 3 秒"这类必须被孩子真正看见的等待。
+   直接用 setTimeout 的话，后台期间照样走完，孩子回来时卡片已经盖住了。 */
+function sleepPausable(ms){
+  return new Promise(resolve => {
+    const t = new Ticker(100, (e) => {
+      if (e >= ms){ t.stop(); resolve(); }
+    });
+    t.start();
+  });
+}
+
+/* =========================================================================
+   七、页面导航
+   ========================================================================= */
+const Screens = {
+  current: 'scr-home',
+  go(id){
+    if (this.current === id) return;
+    TTS.reset();                 // 切页必停语音，防止残留
+    const from = document.getElementById(this.current);
+    const to   = document.getElementById(id);
+    if (from) from.classList.remove('active');
+    if (to)   to.classList.add('active');
+    this.current = id;
+    // 记录当前页面，供 CSS 区分（例如字幕在训练页要往下让，别盖住关卡标题）
+    document.body.setAttribute('data-screen', id);
+    // 训练页与休息页都显示长按退出热区（休息页也要能退出，否则只能干等 30 秒）
+    document.getElementById('exitHot').classList.toggle('show', id === 'scr-train' || id === 'scr-rest');
+    // 只有跳去"用户页面"才算离开训练；休息页/结束页是流程内部跳转，不能打断
+    if (['scr-home','scr-stars','scr-free','scr-play','scr-settings'].indexOf(id) >= 0){
+      Flow.leaveIfNeeded();
+    }
+  }
+};
+
+/* =========================================================================
+   八、弹窗
+   ========================================================================= */
+function showModal(html, opts){
+  opts = opts || {};
+  const mask = document.getElementById('modalMask');
+  const box  = document.getElementById('modalBox');
+  box.innerHTML = html;
+  mask.classList.add('show');
+  if (opts.onMount) opts.onMount(box);
+}
+function closeModal(){
+  document.getElementById('modalMask').classList.remove('show');
+  document.getElementById('modalBox').innerHTML = '';
+}
+
+/* =========================================================================
+   九、文案池
+   ========================================================================= */
+const PRAISE = [
+  '太棒啦，你做得真好',
+  '哇，观察得好仔细',
+  '真棒，继续加油',
+  '太厉害啦，反应很快哦',
+  '做得很好，非常专心',
+  '厉害厉害，为你点赞'
+];
+const SUMMARY_POOL = [
+  '今天孩子在抑制游戏里可以很好忍住冲动',
+  '今天记忆任务需要多一点提示',
+  '今天切换规则的时候适应不错',
+  '今天找不同的时候观察很仔细',
+  '今天排序的时候可以理清先后顺序',
+  '今天识别情绪的时候判断很准确'
+];
+const ENCOURAGE_NEUTRAL = [
+  '没关系，再看一看',
+  '再想一想哦',
+  '再试试看哦',
+  '不对哦，再找找看'
+];
+
+function praiseText(){ return pickOne(PRAISE); }
+
+/* =========================================================================
+   十、题库
+   为了单文件完全离线可用，所有图形使用 emoji 呈现（等价于"图片加载失败降级"），
+   不依赖任何外链，断网也不会出现裂图。
+   ========================================================================= */
+
+/* ---------- 题库1：找不一样 ----------
+   cat  = 类别差异（一眼能看出是不同东西）
+   fine = 细节差异（同类里的细微区别）
+   每个 pair 算作一套题，共 52 套（要求 ≥50）
+------------------------------------------------------------- */
+const SPOT_PAIRS = [
+  // —— 类别差异 26 套 ——
+  {id:'s01', a:'🍎', b:'🍌', kind:'cat'},
+  {id:'s02', a:'🍎', b:'🍇', kind:'cat'},
+  {id:'s03', a:'🍊', b:'🍋', kind:'cat'},
+  {id:'s04', a:'🐱', b:'🐶', kind:'cat'},
+  {id:'s05', a:'🐰', b:'🐻', kind:'cat'},
+  {id:'s06', a:'🌸', b:'🌻', kind:'cat'},
+  {id:'s07', a:'⭐', b:'❤️', kind:'cat'},
+  {id:'s08', a:'🚗', b:'🚲', kind:'cat'},
+  {id:'s09', a:'⚽', b:'🏀', kind:'cat'},
+  {id:'s10', a:'🍦', b:'🍭', kind:'cat'},
+  {id:'s11', a:'🐟', b:'🐤', kind:'cat'},
+  {id:'s12', a:'🌳', b:'🌷', kind:'cat'},
+  {id:'s13', a:'🦋', b:'🐝', kind:'cat'},
+  {id:'s14', a:'🍰', b:'🍪', kind:'cat'},
+  {id:'s15', a:'🚌', b:'✈️', kind:'cat'},
+  {id:'s16', a:'🌞', b:'🌜', kind:'cat'},
+  {id:'s17', a:'🧸', b:'🎈', kind:'cat'},
+  {id:'s18', a:'✏️', b:'📕', kind:'cat'},
+  {id:'s19', a:'🐘', b:'🐭', kind:'cat'},
+  {id:'s20', a:'🍉', b:'🥕', kind:'cat'},
+  {id:'s21', a:'🥁', b:'🎺', kind:'cat'},
+  {id:'s22', a:'🌧️', b:'⛄', kind:'cat'},
+  {id:'s23', a:'🍞', b:'🥛', kind:'cat'},
+  {id:'s24', a:'👟', b:'🧦', kind:'cat'},
+  {id:'s25', a:'🐢', b:'🐸', kind:'cat'},
+  {id:'s26', a:'🚀', b:'🛸', kind:'cat'},
+
+  // —— 细节差异 26 套 ——
+  {id:'s27', a:'🍎', b:'🍏', kind:'fine'},
+  {id:'s28', a:'😊', b:'😄', kind:'fine'},
+  {id:'s29', a:'🐶', b:'🦊', kind:'fine'},
+  {id:'s30', a:'🐱', b:'🦁', kind:'fine'},
+  {id:'s31', a:'🌸', b:'🌺', kind:'fine'},
+  {id:'s32', a:'🚗', b:'🚙', kind:'fine'},
+  {id:'s33', a:'⭐', b:'🌟', kind:'fine'},
+  {id:'s34', a:'❤️', b:'🧡', kind:'fine'},
+  {id:'s35', a:'🐻', b:'🐨', kind:'fine'},
+  {id:'s36', a:'🌙', b:'🌞', kind:'fine'},
+  {id:'s37', a:'🍦', b:'🍨', kind:'fine'},
+  {id:'s38', a:'🟥', b:'🟦', kind:'fine'},
+  {id:'s39', a:'🔵', b:'🟦', kind:'fine'},
+  {id:'s40', a:'🟢', b:'✅', kind:'fine'},
+  {id:'s41', a:'🌻', b:'🌼', kind:'fine'},
+  {id:'s42', a:'🐟', b:'🐠', kind:'fine'},
+  {id:'s43', a:'🍇', b:'🍈', kind:'fine'},
+  {id:'s44', a:'🎈', b:'🎀', kind:'fine'},
+  {id:'s45', a:'🦆', b:'🐥', kind:'fine'},
+  {id:'s46', a:'🍊', b:'🍐', kind:'fine'},
+  {id:'s47', a:'🕐', b:'🕓', kind:'fine'},
+  {id:'s48', a:'📘', b:'📗', kind:'fine'},
+  {id:'s49', a:'🐊', b:'🐉', kind:'fine'},
+  {id:'s50', a:'🍒', b:'🍓', kind:'fine'},
+  {id:'s51', a:'🔴', b:'🟢', kind:'fine'},
+  {id:'s52', a:'💧', b:'🧊', kind:'fine'}
+];
+
+/* ---------- 题库2：听指令停一停 ---------- */
+const GONOGO = { flower:'🌸', bomb:'💣' };
+
+/* ---------- 题库3：记住卡片（48 张不同卡通图，困难档 5+4 也够用） ---------- */
+const MEMORY_POOL = [
+  '🍎','🍌','🍇','🍊','🍓','🍉','🥕','🍞',
+  '🐱','🐶','🐰','🐻','🐼','🐨','🦊','🐸',
+  '🐟','🐤','🦋','🐢','🐘','🦁','🐷','🐵',
+  '🌸','🌻','🌼','🌷','⭐','❤️','🎈','🧸',
+  '🚗','🚲','🚌','✈️','⚽','🏀','🎨','📕',
+  '🍍','🍑','🥝','🌵','🐧','🦉','🐙','🚁'
+];
+
+/* ---------- 题库5：排排队（15 套生活流程，每套 4 步） ---------- */
+const SEQUENCES = [
+  {id:'q01', name:'起床',  steps:[['⏰','闹钟响'],['🛏️','坐起来'],['👕','穿衣服'],['🧼','洗脸']]},
+  {id:'q02', name:'洗手',  steps:[['🚰','开水龙头'],['🧼','抹肥皂'],['💦','冲干净'],['🧺','擦手']]},
+  {id:'q03', name:'刷牙',  steps:[['🪥','挤牙膏'],['🦷','刷牙'],['🥛','漱口'],['😁','笑一笑']]},
+  {id:'q04', name:'吃饭',  steps:[['🧼','先洗手'],['🪑','坐下来'],['🍚','吃饭'],['🧽','擦嘴']]},
+  {id:'q05', name:'收拾玩具', steps:[['📦','拿盒子'],['🧸','放玩具'],['✅','检查一遍'],['🔒','盖盖子']]},
+  {id:'q06', name:'上学',  steps:[['🎒','背书包'],['🚪','出门'],['🚶','走路'],['🏫','到学校']]},
+  {id:'q07', name:'浇花',  steps:[['🚿','拿水壶'],['💧','浇水'],['🌱','等一等'],['🌸','花开了']]},
+  {id:'q08', name:'叠被子', steps:[['🛏️','铺平'],['📐','对折'],['✋','压一压'],['✅','叠好了']]},
+  {id:'q09', name:'穿鞋子', steps:[['🪑','坐下'],['👟','穿左脚'],['👟','穿右脚'],['🦶','站起']]},
+  {id:'q10', name:'画画',  steps:[['📄','拿纸'],['🖍️','拿笔'],['🎨','开始画'],['🖼️','完成了']]},
+  {id:'q11', name:'吃水果', steps:[['🚰','洗水果'],['🔪','切一切'],['😋','吃'],['🗑️','扔果皮']]},
+  {id:'q12', name:'散步',  steps:[['👟','穿鞋'],['🚪','出门'],['🚶','慢慢走'],['🏠','回家']]},
+  {id:'q13', name:'洗澡',  steps:[['👕','脱衣服'],['🧼','洗身体'],['💧','冲干净'],['🧺','擦干']]},
+  {id:'q14', name:'睡觉',  steps:[['🪥','刷牙'],['🛏️','上床'],['📖','看故事'],['💡','关灯']]},
+  {id:'q15', name:'整理书包', steps:[['📚','拿书本'],['🎒','放进书包'],['✏️','放文具'],['✅','拉上拉链']]}
+];
+
+/* ---------- 题库6：猜猜心情（7 种表情） ---------- */
+const MOODS = [
+  {id:'happy',    face:'😊', name:'开心', icon:'😊'},
+  {id:'angry',    face:'😠', name:'生气', icon:'😠'},
+  {id:'sad',      face:'😢', name:'难过', icon:'😢'},
+  {id:'surprise', face:'😲', name:'惊讶', icon:'😲'},
+  {id:'shy',      face:'😳', name:'害羞', icon:'😳'},
+  {id:'tired',    face:'😪', name:'疲惫', icon:'😪'},
+  {id:'wronged',  face:'🥺', name:'委屈', icon:'🥺'}
+];
+
+/* ---------- 题库4：换个玩法（每个图案带三重属性） ---------- */
+const SWITCH_ITEMS = [
+  {e:'🔴', color:'red',    shape:'circle',   cat:'none'},
+  {e:'🟡', color:'yellow', shape:'circle',   cat:'none'},
+  {e:'🟢', color:'green',  shape:'circle',   cat:'none'},
+  {e:'⬛', color:'black',  shape:'square',   cat:'none'},
+  {e:'🟧', color:'orange', shape:'square',   cat:'none'},
+  {e:'🔺', color:'red',    shape:'triangle', cat:'none'},
+  {e:'🔻', color:'red',    shape:'triangle', cat:'none'},
+  {e:'🍎', color:'red',    shape:'circle',   cat:'fruit'},
+  {e:'🍌', color:'yellow', shape:'other',    cat:'fruit'},
+  {e:'🍇', color:'purple', shape:'other',    cat:'fruit'},
+  {e:'🐱', color:'orange', shape:'other',    cat:'animal'},
+  {e:'🐰', color:'white',  shape:'other',    cat:'animal'},
+  {e:'🐸', color:'green',  shape:'other',    cat:'animal'},
+  {e:'✏️', color:'yellow', shape:'other',    cat:'stationery'},
+  {e:'📕', color:'red',    shape:'square',   cat:'stationery'},
+  {e:'📐', color:'blue',   shape:'triangle', cat:'stationery'}
+];
+
+const SWITCH_RULES = [
+  {dim:'color', value:'red',    text:'点红色的'},
+  {dim:'color', value:'yellow', text:'点黄色的'},
+  {dim:'color', value:'green',  text:'点绿色的'},
+  {dim:'shape', value:'circle', text:'点圆形的'},
+  {dim:'shape', value:'square', text:'点方形的'},
+  {dim:'shape', value:'triangle', text:'点三角形的'},
+  {dim:'cat',   value:'fruit',  text:'点水果'},
+  {dim:'cat',   value:'animal', text:'点小动物'},
+  {dim:'cat',   value:'stationery', text:'点文具'}
+];
+
+/* =========================================================================
+   十一、通用渲染工具
+   ========================================================================= */
+function el(tag, cls, html){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined && html !== null) e.innerHTML = html;
+  return e;
+}
+function clearHost(host){ host.innerHTML = ''; }
+
+/**
+ * 【修复 P0-5】每次开一局都换一个全新的舞台节点。
+ *
+ * 为什么必须这么做：游戏函数里大量 await（展示 5 秒、等待点击等）。
+ * 当模块到点或被返回打断时，旧游戏的 async 循环并不会立刻死掉，
+ * 它会在下一个 await 醒来后继续往"自己持有的 host 引用"里画东西。
+ * 如果 host 一直是共享的 #trainHost，就会出现：
+ *   玩到一半切到下一关 → 上一关的界面突然刷出来盖住新关卡。
+ * 解决办法不是去打断每一个 await，而是让旧游戏画到一个已经脱离文档的
+ * 节点上——画什么都没人看得见，天然隔离。
+ */
+function newStage(container){
+  const c = container || document.createElement('div');
+  c.innerHTML = '';
+  const s = document.createElement('div');
+  s.style.cssText = 'width:100%;flex:1;display:flex;flex-direction:column;' +
+    'justify-content:center;align-items:center;min-height:0;';
+  c.appendChild(s);
+  return s;
+}
+
+/* 统一的"答对"反馈：鼓励语 + 轻量视觉 */
+async function feedbackRight(){
+  TTS.say(praiseText());
+  await sleep(650);
+}
+/* 统一的"再看一看"中性引导：不扣分、不判错 */
+async function feedbackRetry(text){
+  TTS.say(text || pickOne(ENCOURAGE_NEUTRAL));
+  await sleep(700);
+}
+
+/* 单题 60 秒兜底：超过就强制结束本题，绝不无限等待 */
+function withTimeout(promise, ms){
+  let timer;
+  const t = new Promise(resolve => {
+    timer = setTimeout(() => resolve('timeout'), ms);
+  });
+  return Promise.race([promise, t]).finally(() => clearTimeout(timer));
+}
+
+/* =========================================================================
+   十二、训练游戏 1：找不一样（选择性注意）
+   ========================================================================= */
+async function gameSpot(host, ctx){
+  const isEasy = ctx.diff === 'easy';
+  const total  = isEasy ? 12 : 18;      // 网格数量：入门 12、进阶 18（按规格）
+  const cols   = isEasy ? 4 : 6;        // 列数（窄屏由 CSS 媒体查询降为 3 列）
+  let stall    = 0;                     // 连续发呆次数
+
+  while (!ctx.shouldStop()){
+    const pair = ctx.pickPair(isEasy ? 'cat' : 'fine');
+    const oddIndex = randInt(0, total - 1);
+
+    clearHost(host);
+    const grid = el('div', 'spot-grid');
+    grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+    grid.style.maxWidth = isEasy ? '330px' : '400px';
+
+    const cells = [];
+    for (let i = 0; i < total; i++){
+      const isOdd = (i === oddIndex);
+      const c = el('div', 'spot-cell', isOdd ? pair.b : pair.a);
+      c.dataset.odd = isOdd ? '1' : '0';
+      grid.appendChild(c);
+      cells.push(c);
+    }
+    host.appendChild(grid);
+
+    // 等待点击（无限次重试，直到点中正确答案）；模块到点时可立刻收手
+    const done = await withTimeout(new Promise(resolve => {
+      let settled = false;
+      const finish = (v) => { if (settled) return; settled = true; resolve(v); };
+
+      // 【修复 P1-1】订阅"模块到点"信号，避免到点后还要干等 60 秒
+      ctx.onStop(() => finish('stopped'));
+
+      grid.addEventListener('click', async ev => {
+        const cell = ev.target.closest('.spot-cell');
+        if (!cell || settled) return;
+        if (cell.dataset.odd === '1'){
+          cell.classList.add('found');
+          await feedbackRight();
+          finish('ok');
+        }else{
+          // 点错：中性引导，不扣分、不跳题；用打断式播报，避免连点导致语音堆积
+          cell.style.transform = 'scale(.92)';
+          setTimeout(() => { cell.style.transform = ''; }, 160);
+          TTS.say(pickOne(['没关系，再看一看','再找找看哦']), { interrupt: true });
+        }
+      });
+    }), 60000);
+
+    if (done === 'stopped') break;          // 模块时间到，收工
+    if (done === 'timeout'){
+      // 【修复 P0-4】超时只跳过本题，不再终结整个模块
+      stall++;
+      if (stall >= 2) break;                // 连续两次发呆，说明孩子走神了
+      continue;
+    }
+    stall = 0;
+    ctx.onQuestion();
+  }
+}
+
+/* =========================================================================
+   十三、训练游戏 2：听指令停一停（抑制控制 Go/NoGo）
+   —— 规则：一轮 10 个刺激，必须零失误才算过关。
+        该点的小花没点  → 本轮作废，重新随机一组，从头再来
+        不该点的炸弹点了 → 同样作废重来
+   每轮序列都由算法重新生成，不重复。
+   ========================================================================= */
+async function gameGoNoGo(host, ctx){
+  const isEasy = ctx.diff === 'easy';
+  const showMs = isEasy ? 1200 : 800;    // 图案显示时长
+  const gapMs  = isEasy ? 300  : 200;    // 间隔空白
+  const perRound = 10;                    // 每轮 10 个刺激
+  const bombCount = isEasy ? 2 : 4;       // 炸弹数量
+
+  clearHost(host);
+  const stage = el('div', 'gonogo-stage', '');
+  const tip   = el('div', 'sub', '看到小花就点它，看到炸弹不要点，一次都不能错哦');
+  tip.style.marginTop = '16px';
+  const progress = el('div', 'sub', '');
+  progress.style.cssText = 'font-size:13px;opacity:.65;margin-top:6px;';
+  host.appendChild(stage);
+  host.appendChild(tip);
+  host.appendChild(progress);
+
+  let running = true;
+  let currentFinish = null;
+
+  /* 模块到点：立刻打断当前刺激，不必等它显示完 */
+  ctx.onStop(() => { if (currentFinish) currentFinish('stopped'); });
+
+  /* 等一个刺激的结果：'tap' 点到了 / 'no-tap' 没点 / 'stopped' 模块结束
+     注意：点中不立刻跳走，仍要显示满 showMs（规格要求每个图案 1.2 秒），
+     这样节奏恒定，也避免孩子连点把后面的刺激跳过去。 */
+  function waitStimulus(){
+    return new Promise(resolve => {
+      let settled = false;
+      let tapped = false;
+
+      const finish = (v) => {
+        if (settled) return;
+        settled = true;
+        stage.removeEventListener('click', onClick);
+        clearTimeout(timer);
+        if (currentFinish === finish) currentFinish = null;
+        resolve(v);
+      };
+
+      const onClick = () => {
+        if (settled || tapped) return;
+        tapped = true;
+        stage.classList.add('hit');     // 点中就给个即时反馈（奶油色）
+      };
+
+      stage.addEventListener('click', onClick);
+      const timer = setTimeout(() => finish(tapped ? 'tap' : 'no-tap'), showMs);
+      currentFinish = finish;
+    });
+  }
+
+  let roundNo = 0;
+
+  while (running && !ctx.shouldStop()){
+    roundNo++;
+
+    /* 本轮刺激序列：算法随机生成，每轮都不同 */
+    const seq = [];
+    for (let i = 0; i < perRound; i++) seq.push(i < bombCount ? 'bomb' : 'flower');
+    shuffle(seq);
+
+    let failed = false;
+
+    for (let i = 0; i < seq.length; i++){
+      if (ctx.shouldStop()){ running = false; break; }
+
+      const kind = seq[i];
+      progress.textContent = '第 ' + roundNo + ' 轮 · ' + i + ' / ' + perRound;
+
+      stage.textContent = kind === 'bomb' ? GONOGO.bomb : GONOGO.flower;
+      stage.classList.remove('hit', 'bomb', 'oops');
+      stage.dataset.kind = kind;
+
+      const outcome = await waitStimulus();
+      if (outcome === 'stopped' || ctx.shouldStop()){ running = false; break; }
+
+      /* 判定：小花必须点中，炸弹必须忍住 */
+      const ok = (kind === 'flower' && outcome === 'tap') ||
+                 (kind === 'bomb'   && outcome === 'no-tap');
+
+      if (!ok){
+        failed = true;
+        stage.classList.add('oops');
+        // 只说规则，不说"你错了"；打断式播报，避免连续失败时语音堆成一串
+        TTS.say(kind === 'bomb'
+          ? '这个要忍住不点哦，我们重来一次'
+          : '这个要点的哦，我们重来一次', { interrupt: true });
+        await sleepPausable(1500);
+        break;
+      }
+
+      if (kind === 'flower') stage.classList.add('hit');
+
+      /* 先清空图案再进入间隔：否则间隔里还留着上一张图，
+         孩子会反复点同一张（既不美观，也会让人以为还在同一个刺激里） */
+      stage.textContent = '';
+      stage.dataset.kind = '';
+      await sleepPausable(gapMs);
+      stage.classList.remove('hit', 'bomb', 'oops');
+    }
+
+    if (!running || ctx.shouldStop()) break;
+
+    if (failed){
+      /* 有任何一次失误：本轮从头再来，序列重新随机 */
+      stage.textContent = '';
+      stage.classList.remove('hit', 'bomb', 'oops');
+      await sleepPausable(500);
+      continue;
+    }
+
+    /* 整轮零失误才算过关 */
+    progress.textContent = '第 ' + roundNo + ' 轮 · 全部正确！';
+    TTS.say(praiseText());
+    ctx.onQuestion();                    // 记一轮（不是记一个刺激）
+    await sleepPausable(1500);
+    stage.textContent = '';
+  }
+}
+
+/* =========================================================================
+   十四、训练游戏 3：记住卡片（工作记忆）
+   —— 全程卡片正面朝上，不翻转、不反扣。
+   流程：先看上方的目标卡 5 秒 → 目标混入干扰卡排到候选区 → 点选所有见过的，
+        选满即自动判定。
+   档位：简单 3/5、一般 4/7、困难 5/9。
+   ========================================================================= */
+
+/* 三档配置：targets=目标张数，total=候选区总张数 */
+const MEMORY_TIERS = {
+  easy:   { targets: 3, total: 5, label: '简单' },
+  normal: { targets: 4, total: 7, label: '一般' },
+  hard:   { targets: 5, total: 9, label: '困难' }
+};
+
+/**
+ * 抽 n 张不重复的卡片，优先用 7 天内没出现过的，降低重复率。
+ * 注意：这里只负责"抽"，不负责标记——标记放在确定目标卡之后，
+ * 只标记目标卡。因为干扰卡重复出现无所谓，真正要避免的是
+ * "要记的那几张"反复是同一批，否则孩子会靠背卡片而不是靠记。
+ */
+function pickMemoryCards(n){
+  const now = Date.now();
+  const recent = Pool.recent('memory', now);
+  const fresh = MEMORY_POOL.filter(c => !recent.has(c));
+  const old   = MEMORY_POOL.filter(c =>  recent.has(c));
+  shuffle(fresh);
+  shuffle(old);
+  return fresh.concat(old).slice(0, n);
+}
+
+async function gameMemory(host, ctx){
+  /* ---------- 决定用哪一档 ----------
+     自由模式：用页面内切换的档位（记在 memoryCardDifficulty）
+     每日训练：自定义开关开 → 困难；否则 入门→简单 / 进阶→一般 */
+  let tier = ctx.isFree
+    ? (MEMORY_TIERS[Settings.get('memoryCardDifficulty')] ? Settings.get('memoryCardDifficulty') : 'easy')
+    : (Settings.get('memoryCardCustom') ? 'hard' : (ctx.diff === 'easy' ? 'easy' : 'normal'));
+
+  clearHost(host);
+
+  /* ---------- 可被"切档 / 退出"打断的等待 ---------- */
+  let pendingWait = null;
+  function waitPausable(ms){
+    return new Promise(resolve => {
+      let done = false;
+      let tk = null;
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        if (tk) tk.stop();
+        if (pendingWait === finish) pendingWait = null;
+        resolve(v);
+      };
+      tk = new Ticker(100, (e) => { if (e >= ms) finish('ok'); });
+      tk.start();
+      pendingWait = finish;
+    });
+  }
+
+  /* ---------- 自由模式：页面内档位切换 ---------- */
+  let seg = null;
+  if (ctx.isFree){
+    seg = el('div', 'seg mem-seg');
+    Object.keys(MEMORY_TIERS).forEach(k => {
+      const b = el('button', k === tier ? 'on' : '', MEMORY_TIERS[k].label);
+      b.dataset.tier = k;
+      b.onclick = () => {
+        if (tier === k) return;
+        tier = k;
+        Settings.set('memoryCardDifficulty', k);     // 记住选择，下次进来还是这档
+        Array.from(seg.children).forEach(x => x.classList.toggle('on', x.dataset.tier === k));
+        if (pendingWait) pendingWait('switch');      // 立刻按新档重开一组
+      };
+      seg.appendChild(b);
+    });
+    host.appendChild(seg);
+  }
+
+  /* ---------- 内容区 ---------- */
+  const zone = el('div', 'mem-zone');
+  host.appendChild(zone);
+
+  let timeouts = 0;        // 连续超时（孩子发呆），两次就收工
+
+  while (!ctx.shouldStop() && timeouts < 2){
+    const cfg = MEMORY_TIERS[tier];
+    const cards = pickMemoryCards(cfg.total);        // 目标 + 干扰一起抽，天然不重复
+    const targets = cards.slice(0, cfg.targets);
+    const targetSet = new Set(targets);
+    // 只把目标卡记进 7 天去重库，保证下次尽量换一批"要记的"
+    targets.forEach(c => Pool.mark('memory', c, Date.now()));
+
+    let reshows = 0;         // 本组已重新展示次数（上限 2）
+    let groupDone = false;
+
+    while (!ctx.shouldStop() && !groupDone){
+
+      /* ===== 第一步：上方展示目标卡片，静默 5 秒（不显示倒计时） ===== */
+      clearHost(zone);
+      zone.appendChild(el('div', 'rule-banner',
+        reshows === 0 ? '仔细看，记住这几张' : '再看一次，记住它们'));
+
+      const trow = el('div', 'mem-row mem-targets');
+      targets.forEach(c => trow.appendChild(el('div', 'mem-card target', c)));
+      zone.appendChild(trow);
+
+      TTS.say(reshows === 0 ? '仔细看，记住它们哦' : '再仔细看一次哦');
+
+      const w = await waitPausable(5000);
+      if (w === 'stop' || ctx.shouldStop()) return;
+      if (w === 'switch'){ groupDone = true; break; }
+
+      /* ===== 第二步：目标混入干扰，候选区全部正面朝上 ===== */
+      clearHost(zone);
+      zone.appendChild(el('div', 'rule-banner',
+        '选出刚才见过的 ' + cfg.targets + ' 张'));
+
+      const grid = el('div', 'mem-row mem-candidates');
+      const order = shuffle(cards.slice());          // 打乱后铺开，位置每局随机
+      order.forEach((c, i) => {
+        const card = el('div', 'mem-card', c);
+        card.dataset.idx = String(i);
+        card.dataset.face = c;
+        grid.appendChild(card);
+      });
+      zone.appendChild(grid);
+
+      /* ===== 第三步：点选，选满即判定 ===== */
+      const picked = new Set();
+
+      const result = await new Promise(resolve => {
+        let settled = false;
+
+        const finish = (v) => {
+          if (settled) return;
+          settled = true;
+          grid.removeEventListener('click', onClick);
+          clearTimeout(guard);
+          if (pendingWait === finish) pendingWait = null;
+          resolve(v);
+        };
+
+        ctx.onStop(() => finish('stop'));            // 模块到点立刻收手
+        pendingWait = finish;
+        const guard = setTimeout(() => finish('timeout'), 60000);   // 单组 60 秒兜底
+
+        function onClick(ev){
+          const card = ev.target.closest('.mem-card');
+          if (!card || settled) return;
+
+          const idx = card.dataset.idx;
+
+          // 再点一次取消选中
+          if (picked.has(idx)){
+            picked.delete(idx);
+            card.classList.remove('picked');
+            return;
+          }
+          if (picked.size >= cfg.targets) return;    // 选满后不再新增
+
+          picked.add(idx);
+          card.classList.add('picked');
+
+          if (picked.size === cfg.targets){
+            // 判定：选中的每一张都必须在目标集合里
+            const ok = Array.from(picked)
+              .every(i => targetSet.has(order[parseInt(i, 10)]));
+            finish(ok ? 'right' : 'wrong');
+          }
+        }
+
+        grid.addEventListener('click', onClick);
+      });
+
+      if (result === 'stop' || ctx.shouldStop()) return;
+      if (result === 'switch'){ groupDone = true; break; }
+
+      if (result === 'timeout'){
+        timeouts++;
+        groupDone = true;
+        break;
+      }
+      timeouts = 0;
+
+      /* ===== 第四步：反馈 ===== */
+      if (result === 'right'){
+        TTS.say(praiseText());
+        ctx.onQuestion();
+        await waitPausable(2000);                    // 2 秒后进入下一组
+        groupDone = true;
+        break;
+      }
+
+      // 答错：不扣分、不标注错误，只做中性引导
+      if (reshows >= 2){
+        // 已经重新展示过 2 次，仍不对就换下一组
+        ctx.onQuestion();
+        groupDone = true;
+        break;
+      }
+      reshows++;
+      TTS.say('没关系，再看一次哦');
+      await waitPausable(700);
+      // 循环回到第一步重新展示
+    }
+  }
+}
+
+/* =========================================================================
+   十五、训练游戏 4：换个玩法（任务切换）
+   ========================================================================= */
+async function gameSwitch(host, ctx){
+  const isEasy     = ctx.diff === 'easy';
+  const changeEvery = isEasy ? 5 : 3;     // 每做几题换一次规则
+  const showMs      = isEasy ? 2600 : 2000;   // 每题最长显示时间（入门放宽，给 6 岁留判定时间）
+
+  // 生成一道题：返回 {item, rule, shouldTap}
+  function makeQuestion(rule){
+    // 只保留在该维度上有明确取值的图案
+    const usable = SWITCH_ITEMS.filter(it => {
+      const v = it[rule.dim];
+      return v && v !== 'none' && v !== 'other';
+    });
+    const match    = usable.filter(it => it[rule.dim] === rule.value);
+    const mismatch = usable.filter(it => it[rule.dim] !== rule.value);
+    const shouldTap = Math.random() < 0.5 && match.length > 0;
+    const item = shouldTap ? pickOne(match) : pickOne(mismatch);
+    return { item: item, rule: rule, shouldTap: shouldTap };
+  }
+
+  let rule = pickOne(SWITCH_RULES);
+  let doneInRule = 0;
+  let firstRule = true;
+
+  clearHost(host);
+  const banner = el('div', 'rule-banner', '规则：' + rule.text);
+  const stage  = el('div', 'switch-item', '');
+  const hint   = el('div', 'sub', '符合规则就点它，不符合就不点');
+  hint.style.marginTop = '14px';
+  host.appendChild(banner);
+  host.appendChild(stage);
+  host.appendChild(hint);
+
+  let running = true;
+
+  while (running && !ctx.shouldStop()){
+    // 需要换规则？
+    if (!firstRule && doneInRule >= changeEvery){
+      // 提前 2 秒语音提示「规则变啦」，缓冲后再出下一题
+      TTS.say('规则变啦！', { interrupt: true });
+      banner.textContent = '规则要变啦…';
+      stage.textContent = '';
+      await sleep(2000);
+
+      // 随机换一个和当前不同的规则
+      let next = pickOne(SWITCH_RULES);
+      let guard = 0;
+      while (next.text === rule.text && guard++ < 20) next = pickOne(SWITCH_RULES);
+      rule = next;
+      doneInRule = 0;
+      banner.textContent = '规则：' + rule.text;
+    }
+    firstRule = false;
+
+    if (ctx.shouldStop()){ running = false; break; }
+
+    const q = makeQuestion(rule);
+    stage.textContent = q.item.e;
+
+    // 2 秒内等待点击，未点击视为"不点"
+    const tapped = await new Promise(resolve => {
+      let settled = false;
+      const onClick = () => {
+        if (settled) return;
+        settled = true;
+        stage.removeEventListener('click', onClick);
+        resolve(true);
+      };
+      stage.addEventListener('click', onClick);
+      setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        stage.removeEventListener('click', onClick);
+        resolve(false);
+      }, showMs);
+    });
+
+    const correct = (tapped === q.shouldTap);
+    if (correct){
+      if (Math.random() < 0.4) TTS.say(praiseText());
+    }else{
+      // 中性提示，不扣分
+      TTS.say(q.shouldTap ? '这个要点的哦' : '这个不用点哦');
+    }
+    ctx.onQuestion();
+    doneInRule++;
+
+    stage.textContent = '';
+    await sleep(280);
+  }
+}
+
+/* =========================================================================
+   十六、训练游戏 5：排排队（排序规划）
+   两种操作：拖拽换位 / 点两张卡片交换
+   排好后静置 1.2 秒自动判定，无确认按钮
+   ========================================================================= */
+async function gameOrder(host, ctx){
+  const isEasy = ctx.diff === 'easy';
+  const count  = isEasy ? 3 : 4;      // 卡片数量
+
+  // 当前这一组的状态
+  let cards = [];      // [{icon, label, step}]
+  let layout = [];     // 当前顺序（存 step 序号）
+  let firstPick = -1;
+  let swapsWithoutSuccess = 0;
+
+  function render(){
+    clearHost(host);
+    host.appendChild(el('div', 'rule-banner', '把顺序排好：' + currentName));
+    const row = el('div', 'seq-row');
+    row.style.maxWidth = (count * 82 + 20) + 'px';
+
+    layout.forEach((step, pos) => {
+      const c = cards[step];
+      const card = el('div', 'seq-card', '');
+      card.appendChild(el('div', '', c.icon));
+      card.appendChild(el('small', '', c.label));
+      card.dataset.pos = pos;
+      if (pos === firstPick) card.classList.add('sel');
+
+      // 拖拽
+      card.draggable = true;
+      card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', String(pos));
+      });
+      card.addEventListener('dragover', e => e.preventDefault());
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        if (!isNaN(from)) doSwap(from, pos);
+      });
+
+      // 点击选中 / 交换
+      card.addEventListener('click', () => {
+        if (firstPick < 0){
+          firstPick = pos;
+          render();
+        }else if (firstPick === pos){
+          firstPick = -1;
+          render();
+        }else{
+          doSwap(firstPick, pos);
+          firstPick = -1;
+        }
+      });
+
+      row.appendChild(card);
+    });
+    host.appendChild(row);
+    // 说明只提点击：iOS Safari 不触发 HTML5 拖拽，避免孩子按提示去拖却拖不动
+    host.appendChild(el('div', 'sub', '点两张卡片，它们就换位置啦'));
+  }
+
+  function doSwap(a, b){
+    const t = layout[a];
+    layout[a] = layout[b];
+    layout[b] = t;
+    firstPick = -1;
+    render();
+    scheduleCheck();
+  }
+
+  // 静置一段时间后自动判定
+  let checkTimer = null;
+  function scheduleCheck(){
+    if (checkTimer) clearTimeout(checkTimer);
+    checkTimer = setTimeout(() => {
+      if (isSolved()){
+        resolveRound(true);
+      }else{
+        swapsWithoutSuccess++;
+        if (swapsWithoutSuccess % 2 === 0){   // 不要每次都说，避免打击
+          TTS.say('再试试看哦', { interrupt: true });
+        }
+      }
+    }, 1200);
+  }
+
+  function isSolved(){
+    for (let i = 0; i < layout.length; i++){
+      if (layout[i] !== i) return false;
+    }
+    return true;
+  }
+
+  let resolveRound = null;
+  let currentName = '';
+  let stall = 0;                        // 连续发呆次数
+
+  while (!ctx.shouldStop() && stall < 2){
+    // 抽一套流程（同一天内走 Pool 去重）
+    const picked = ctx.pickSequence();
+    currentName = picked.name;
+    // 入门 3 张时取「起点 / 中间 / 终点」，避免只切前 3 步而砍掉结尾，导致流程语义断裂
+    const src = (count === 3 && picked.steps.length >= 4)
+      ? [picked.steps[0], picked.steps[1], picked.steps[3]]
+      : picked.steps;
+    cards = src.map((s, i) => ({ icon: s[0], label: s[1], step: i }));
+    layout = cards.map((_, i) => i);
+    shuffle(layout);
+    // 防止一开始就是对的
+    if (isSolved()){ layout.reverse(); }
+
+    firstPick = -1;
+    swapsWithoutSuccess = 0;
+    render();
+
+    const ok = await withTimeout(new Promise(r => {
+      resolveRound = r;
+      ctx.onStop(() => r('stopped'));      // 【修复 P1-1】模块到点立刻收手
+    }), 60000);
+    if (checkTimer){ clearTimeout(checkTimer); checkTimer = null; }
+
+    if (ok === true){
+      stall = 0;
+      await feedbackRight();
+    }else if (ok === 'stopped'){
+      break;
+    }else if (ok === 'timeout'){
+      // 【修复 P0-4】只跳过这一组，不终结整个模块
+      stall++;
+      continue;
+    }
+    ctx.onQuestion();
+  }
+}
+
+/* =========================================================================
+   十七、训练游戏 6：猜猜心情（情绪觉察）
+   ========================================================================= */
+async function gameMood(host, ctx){
+  let stall = 0;                        // 连续发呆次数
+  while (!ctx.shouldStop() && stall < 2){
+    // 抽一个正确情绪
+    const correct = pickOne(MOODS);
+    // 干扰项从表情库随机抽取，不重复
+    const others = shuffle(MOODS.filter(m => m.id !== correct.id)).slice(0, 3);
+    const options = shuffle([correct].concat(others));
+
+    clearHost(host);
+    host.appendChild(el('div', 'rule-banner', '这是什么心情呀？'));
+
+    const face = el('div', 'mood-face', correct.face);
+    host.appendChild(face);
+
+    const box = el('div', 'mood-opts');
+    options.forEach(m => {
+      const b = el('button', 'mood-opt', m.icon + ' ' + m.name);
+      b.addEventListener('click', async () => {
+        if (b.dataset.lock) return;
+        if (m.id === correct.id){
+          // 全部锁住，防止连点
+          Array.from(box.children).forEach(x => x.dataset.lock = '1');
+          b.style.background = 'var(--mint)';
+          await feedbackRight();
+          resolveAnswer('ok');
+        }else{
+          b.classList.add('wrong');
+          b.dataset.lock = '1';
+          TTS.say('再想一想哦', { interrupt: true });
+        }
+      });
+      box.appendChild(b);
+    });
+    host.appendChild(box);
+
+    let resolveAnswer = null;
+    const res = await withTimeout(new Promise(r => {
+      resolveAnswer = r;
+      ctx.onStop(() => r('stopped'));     // 【修复 P1-1】模块到点立刻收手
+    }), 60000);
+    if (res === 'stopped') break;
+    if (res === 'timeout'){
+      // 【修复 P0-4】只跳过本题，不终结整个模块
+      stall++;
+      continue;
+    }
+    stall = 0;
+    ctx.onQuestion();
+  }
+}
+
+/* =========================================================================
+   十八、自由游戏：数字舒尔特方格
+   只有正确点到"1"才开始计时；最多 5 分钟自动结束
+   ========================================================================= */
+async function gameSchulte(host, ctx){
+  const SIZES = { easy: 3, hard: 4, high: 7 };
+  let level = ctx.diff === 'hard' ? 'hard' : 'easy';
+
+  clearHost(host);
+
+  // 顶部：档位切换 + 计时
+  const top = el('div', 'train-top');
+  const seg = el('div', 'seg');
+  const timerEl = el('div', 'schulte-timer', '用时 0 秒');
+
+  function buildSeg(){
+    seg.innerHTML = '';
+    [['easy','3×3'], ['hard','4×4'], ['high','7×7']].forEach(([k, label]) => {
+      const b = el('button', level === k ? 'on' : '', label);
+      b.addEventListener('click', () => {
+        level = k;
+        buildSeg();
+        startRound();
+      });
+      seg.appendChild(b);
+    });
+  }
+
+  const hostGrid = el('div', 'schulte-grid');
+  const againBtn = el('button', 'btn big primary', '再来一次');
+  againBtn.style.marginTop = '18px';
+
+  host.appendChild(timerEl);
+  if (ctx.isFree) host.appendChild(seg);   // 【修复 P2-6】档位切换只在自由模式暴露，训练中不给孩子改难度
+  host.appendChild(hostGrid);
+  host.appendChild(againBtn);
+
+  let ticker = null;
+  let next = 1;
+  let finished = false;
+
+  function stopTimer(){
+    if (ticker){ ticker.stop(); ticker = null; }
+  }
+
+  function startTimer(){
+    if (ticker) return;
+    ticker = new Ticker(250, el2 => {
+      const sec = Math.floor(el2 / 1000);
+      timerEl.textContent = '用时 ' + sec + ' 秒';
+      if (el2 >= 5 * 60 * 1000){      // 5 分钟兜底
+        stopTimer();
+        finished = true;
+        TTS.say('休息一下再来吧');
+      }
+    });
+    ticker.start();
+  }
+
+  function startRound(){
+    stopTimer();
+    next = 1;
+    finished = false;
+    timerEl.textContent = '用时 0 秒';
+
+    const n = SIZES[level];
+    const total = n * n;
+    const nums = [];
+    for (let i = 1; i <= total; i++) nums.push(i);
+    shuffle(nums);                       // 每轮随机布局，不能背位置
+
+    hostGrid.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+    hostGrid.style.maxWidth = n === 7 ? '100%' : (n === 4 ? '360px' : '300px');
+    hostGrid.innerHTML = '';
+
+    nums.forEach(num => {
+      const cell = el('div', 'schulte-cell', String(num));
+      // 7×7 字号要小一点
+      if (n === 7) cell.style.fontSize = '15px';
+      cell.addEventListener('click', () => {
+        if (finished) return;
+        if (num === next){
+          cell.classList.add('done');
+          if (next === 1) startTimer();       // 点对 1 才开始计时
+          next++;
+          if (next > total){
+            // 【修复 P0-2】先取用时再停表：旧代码 stopTimer() 会把 ticker 置空，
+            // 紧接着读 ticker.elapsed 永远是 0，播报"用时 0 秒"。
+            const sec = Math.floor((ticker ? ticker.elapsed : 0) / 1000);
+            stopTimer();
+            finished = true;
+            timerEl.textContent = '完成！用时 ' + sec + ' 秒';
+            TTS.say('太棒啦，用时 ' + sec + ' 秒');
+          }
+        }else{
+          // 点错：不扣分、不重置、不停表；打断式播报，避免连点堆积
+          TTS.say('不对哦，再找找看', { interrupt: true });
+          cell.style.transform = 'scale(.9)';
+          setTimeout(() => { cell.style.transform = ''; }, 140);
+        }
+      });
+      hostGrid.appendChild(cell);
+    });
+  }
+
+  againBtn.addEventListener('click', () => {
+    TTS.say('再来一次');
+    startRound();
+  });
+
+  if (ctx.isFree) buildSeg();
+  startRound();
+
+  // 这个游戏是自由模式，自己管理生命周期：等到外部停止
+  await new Promise(resolve => {
+    ctx.onStop(resolve);
+  });
+  stopTimer();
+}
+
+/* =========================================================================
+   十九、六个训练模块的定义
+   顺序固定不可调换；舒尔特替换模式只替换模块1
+   ========================================================================= */
+const MODULES = [
+  { key:'spot',   name:'找不一样',     minutes:5, icon:'🔍',
+    rules:'找一找，哪个和别人不一样', fn:gameSpot },
+  { key:'gonogo', name:'听指令停一停', minutes:6, icon:'🌸',
+    rules:'看到小花就点它，看到炸弹不要点，手停住哦', fn:gameGoNoGo },
+  { key:'memory', name:'记住卡片',     minutes:6, icon:'🃏',
+    rules:'先记住这几张卡片，再把它们找出来', fn:gameMemory },
+  { key:'switch', name:'换个玩法',     minutes:5, icon:'🔄',
+    rules:'规则会变哦，听清楚再点', fn:gameSwitch },
+  { key:'order',  name:'排排队',       minutes:4, icon:'📋',
+    rules:'把卡片按先后顺序排好', fn:gameOrder },
+  { key:'mood',   name:'猜猜心情',     minutes:3, icon:'😊',
+    rules:'看看这张脸，是什么心情呢', fn:gameMood }
+];
+
+/* 舒尔特已改为首页直达入口，不再作为训练模块的替换项 */
+
+const REST_SECONDS = 30;      // 模块间强制休息时长
+
+/* =========================================================================
+   二十、训练流程控制
+   ========================================================================= */
+const Flow = {
+  running    : false,
+  modules    : [],
+  stopFlag   : false,
+  stopResolvers: [],
+  moduleTicker: null,
+  restTicker : null,
+  answered   : 0,
+  stats      : {},          // 每一关实际答题数，用于结束页的真实完成情况
+
+  /* 当前应用哪一套模块：固定按 MODULES 顺序
+     （数字舒尔特已改为首页直达入口，不再参与每日训练的替换） */
+  buildModules(){
+    return MODULES.map(m => Object.assign({}, m));
+  },
+
+  /* ---------- 入口：点击「开始今日训练」 ---------- */
+  start(){
+    const today = todayStr();
+
+    // 1) 今天已经打过卡 → 不允许重复进入
+    if (History.has(today)){
+      showModal(
+        '<h3>今天已经完成啦</h3>' +
+        '<p>今天你已经完成训练啦，真棒！可以去星星本看看，或者玩自由游戏哦</p>' +
+        '<div class="row">' +
+        '<button class="btn lilac" id="doneStars">去星星本</button>' +
+        '<button class="btn primary" id="doneOk">知道啦</button>' +
+        '</div>',
+        { onMount(box){
+            box.querySelector('#doneOk').onclick = () => closeModal();
+            box.querySelector('#doneStars').onclick = () => {
+              closeModal();
+              Screens.go('scr-stars');
+              renderStars();
+            };
+          } }
+      );
+      return;
+    }
+
+    Progress.load();
+    const p = Progress.data;
+
+    // 2) 跨日：自动清空上次进度，不弹窗
+    if (p.date && p.date !== today){
+      Progress.clear();
+    }
+
+    // 3) 当日有未完成进度 → 询问继续还是重来
+    if (p.date === today && p.moduleIndex > 0 && p.moduleIndex < 6){
+      showModal(
+        '<h3>还没做完哦</h3>' +
+        '<p>上次训练还没完成，要继续上次的吗？</p>' +
+        '<div class="row">' +
+        '<button class="btn lilac" id="mRestart">重新开始</button>' +
+        '<button class="btn primary" id="mContinue">继续上次</button>' +
+        '</div>',
+        { onMount(box){
+            box.querySelector('#mContinue').onclick = () => { closeModal(); Flow.begin(p.moduleIndex); };
+            box.querySelector('#mRestart').onclick  = () => { closeModal(); Progress.clear(); Flow.begin(0); };
+          } }
+      );
+      return;
+    }
+
+    // 4) 全新开始
+    this.begin(Math.min(p.moduleIndex || 0, 5));
+  },
+
+  /* ---------- 正式开始 ---------- */
+  begin(fromIndex){
+    this.running = true;
+    this.stopFlag = false;
+    this.modules = this.buildModules();
+    this.answered = 0;
+    this.stats = {};
+
+    Progress.data.date = todayStr();
+    Progress.data.moduleIndex = fromIndex;
+    Progress.save();
+
+    Screens.go('scr-train');
+    this.runLoop(fromIndex);
+  },
+
+  /* ---------- 主循环 ---------- */
+  async runLoop(from){
+    for (let i = from; i < this.modules.length; i++){
+      if (!this.running) return;
+
+      // 记录进度（已完成 i 个）
+      Progress.data.moduleIndex = i;
+      Progress.data.date = todayStr();
+      Progress.save();
+
+      await this.runModule(i);
+
+      if (!this.running) return;
+
+      // 每个模块完成后保存进度
+      Progress.data.moduleIndex = i + 1;
+      Progress.save();
+
+      // 最后一个模块之后不休息，直接结束
+      if (i < this.modules.length - 1){
+        await this.runRest();
+        if (!this.running) return;
+      }
+    }
+    if (this.running) this.finish();
+  },
+
+  /* ---------- 跑一个模块 ---------- */
+  async runModule(index){
+    const mod = this.modules[index];
+    const host = newStage(document.getElementById('trainHost'));
+    const stepEl = document.getElementById('trainStep');
+    const nameEl = document.getElementById('trainName');
+    const hintEl = document.getElementById('trainHint');
+    const barEl  = document.getElementById('trainBar');
+
+    stepEl.textContent = '第 ' + (index + 1) + ' 关 / ' + this.modules.length;
+    nameEl.textContent = mod.name;
+    hintEl.textContent = '';
+    barEl.style.width = '0%';
+
+    /* —— 第一步：规则引导（约 3 秒，不计入训练时长）—— */
+    clearHost(host);
+    const intro = el('div', 'card center');
+    intro.innerHTML =
+      '<div style="font-size:52px;margin-bottom:10px;">' + mod.icon + '</div>' +
+      '<div style="font-size:20px;font-weight:800;margin-bottom:8px;">' + mod.name + '</div>' +
+      '<div class="sub">' + mod.rules + '</div>';
+    host.appendChild(intro);
+
+    TTS.say(mod.rules);
+    await sleepPausable(3000);   // 【修复 P1-2】引导 3 秒必须被孩子真正看到，切后台时暂停
+
+    if (!this.running) return;
+
+    /* —— 第二步：正式计时 —— */
+    const totalMs = mod.minutes * 60 * 1000;
+    this.stopFlag = false;
+    this.stopResolvers = [];
+
+    const ctx = {
+      diff: Settings.get('difficulty'),
+      isFree: false,                                   // 训练模式：舒尔特不暴露档位切换
+      shouldStop: () => this.stopFlag,
+      onQuestion: () => {
+        this.answered++;
+        this.stats[mod.key] = (this.stats[mod.key] || 0) + 1;   // 记录每关实际答题数
+      },
+      onStop: (resolve) => { this.stopResolvers.push(resolve); },
+      /* 抽一套"找不一样"题目（7 天去重） */
+      pickPair: (kind) => {
+        const pool = SPOT_PAIRS
+          .filter(p => kind === 'cat' ? p.kind === 'cat' : p.kind === 'fine')
+          .map(p => ({ id: p.id, a: p.a, b: p.b }));
+        return Pool.pick(pool, 1, 'spot')[0];
+      },
+      /* 抽一套"排排队"流程（7 天去重） */
+      pickSequence: () => {
+        const pool = SEQUENCES.map(s => ({ id: s.id, name: s.name, steps: s.steps }));
+        return Pool.pick(pool, 1, 'order')[0];
+      }
+    };
+
+    // 进度条 + 到点停止
+    this.moduleTicker = new Ticker(200, (elapsed) => {
+      const pct = Math.min(100, elapsed / totalMs * 100);
+      barEl.style.width = pct.toFixed(1) + '%';
+      if (elapsed >= totalMs && !this.stopFlag){
+        this.stopFlag = true;                 // 告知游戏：答完这题就收手
+        this.stopResolvers.splice(0).forEach(fn => { try{ fn(); }catch(e){} });
+      }
+    });
+    this.moduleTicker.start();
+
+    try{
+      await mod.fn(host, ctx);
+    }catch(e){
+      console.error('模块执行出错', e);
+    }
+
+    // 收尾
+    this.stopFlag = true;
+    this.stopResolvers.splice(0).forEach(fn => { try{ fn(); }catch(e){} });
+    if (this.moduleTicker){ this.moduleTicker.stop(); this.moduleTicker = null; }
+    barEl.style.width = '100%';
+
+    await sleep(400);
+  },
+
+  /* ---------- 休息页（30 秒，不可跳过） ---------- */
+  async runRest(){
+    const host = document.getElementById('trainHost');
+    Screens.go('scr-rest');
+
+    const bar = document.getElementById('restBar');
+    bar.style.width = '0%';
+
+    TTS.say('休息一下，眨眨眼睛');
+
+    // 休息页不可操作，只能等
+    await new Promise(resolve => {
+      let elapsed = 0;
+      this.restTicker = new Ticker(200, (e) => {
+        elapsed = e;
+        bar.style.width = Math.min(100, e / (REST_SECONDS * 1000) * 100).toFixed(1) + '%';
+        if (e >= REST_SECONDS * 1000){
+          this.restTicker.stop();
+          this.restTicker = null;
+          resolve();
+        }
+      });
+      this.restTicker.start();
+    });
+
+    if (!this.running) return;
+    Screens.go('scr-train');
+    await sleep(300);
+  },
+
+  /* ---------- 结束：打卡 + 发星星 ---------- */
+  finish(){
+    this.running = false;
+    if (this.moduleTicker){ this.moduleTicker.stop(); this.moduleTicker = null; }
+
+    const today = todayStr();
+    const summary = pickOne(SUMMARY_POOL);
+
+    // 记录打卡（同一天只记一次）
+    if (!History.has(today)){
+      History.push({ date: today, stars: 1, summary: summary });
+      Stars.add(1);
+    }
+    Progress.clear();
+
+    // 渲染结束页
+    const body = document.getElementById('endBody');
+    body.innerHTML = '';
+
+    const star = el('div', 'star-big', '⭐');
+    body.appendChild(star);
+
+    body.appendChild(el('div', 'title', '今天完成啦！'));
+    body.appendChild(el('div', 'sub', '你今天做了 ' + this.modules.length + ' 个小游戏'));
+
+    const list = el('div', 'card', '');
+    list.style.width = '100%';
+    list.style.maxWidth = '340px';
+    list.innerHTML = this.modules.map(m =>
+      '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:15px;">' +
+      '<span>' + m.icon + '</span><span>' + m.name + '</span>' +
+      '<span style="margin-left:auto;color:var(--mint-deep);">✓</span></div>'
+    ).join('');
+    body.appendChild(list);
+
+    body.appendChild(el('div', 'end-stars', '⭐'.repeat(Math.min(20, Stars.total))));
+    body.appendChild(el('div', 'sub', '一共收集了 ' + Stars.total + ' 颗星星'));
+
+    // 【修复 P2-5】结束页改成"真实完成情况 + 明确标注的随机鼓励语"，
+    // 避免家长把随机文案当成孩子的表现结论
+    const statLines = this.modules.map(m => {
+      const n = this.stats[m.key] || 0;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:15px;">'
+        + '<span>' + m.icon + '</span><span>' + m.name + '</span>'
+        + '<span style="margin-left:auto;color:var(--ink-soft);font-size:13px;">完成 ' + n + ' 题</span>'
+        + '<span style="color:var(--mint-deep);">✓</span></div>';
+    }).join('');
+
+    const sumCard = el('div', 'card', '');
+    sumCard.style.maxWidth = '340px';
+    sumCard.innerHTML =
+      '<div style="font-size:13px;color:var(--ink-soft);margin-bottom:6px;">今天的完成情况</div>'
+      + statLines
+      + '<div style="font-size:12px;color:var(--ink-soft);margin-top:10px;padding-top:10px;'
+      + 'border-top:1px solid #F1E9E3;line-height:1.6;">'
+      + '随机鼓励语（不是评估结论）：' + summary + '</div>';
+    body.appendChild(sumCard);
+
+    const btns = el('div', 'home-btns');
+    btns.style.maxWidth = '340px';
+    const b1 = el('button', 'btn big primary', '返回首页');
+    b1.onclick = () => { Screens.go('scr-home'); };
+    const b2 = el('button', 'btn big lilac', '查看星星本');
+    b2.onclick = () => { Screens.go('scr-stars'); renderStars(); };
+    btns.appendChild(b1);
+    btns.appendChild(b2);
+    body.appendChild(btns);
+
+    Screens.go('scr-end');
+    TTS.say('太棒啦，今天全部完成，送你一颗星星');
+  },
+
+  /* ---------- 中途离开（防止后台残留） ---------- */
+  leaveIfNeeded(){
+    if (!this.running) return;
+    this.running = false;
+    this.stopFlag = true;
+    this.stopResolvers.splice(0).forEach(fn => { try{ fn(); }catch(e){} });
+    if (this.moduleTicker){ this.moduleTicker.stop(); this.moduleTicker = null; }
+    if (this.restTicker){ this.restTicker.stop(); this.restTicker = null; }
+  }
+};
+
+/* =========================================================================
+   二十一、星星本
+   ========================================================================= */
+function renderStars(){
+  History.load();
+  const body = document.getElementById('starsBody');
+  body.innerHTML = '';
+
+  const head = el('div', 'card mb');
+  head.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+    '<div><div style="font-size:14px;color:var(--ink-soft);">累计星星</div>' +
+    '<div style="font-size:34px;font-weight:800;">' + Stars.total + ' ⭐</div></div>' +
+    '<div style="font-size:44px;">🌟</div></div>';
+  body.appendChild(head);
+
+  if (!History.list.length){
+    const empty = el('div', 'card center', '');
+    empty.innerHTML = '<div style="font-size:44px;margin-bottom:10px;">🌱</div>'
+      + '<div class="sub">还没有记录哦，完成今天的小游戏就能得到第一颗星星啦</div>';
+    body.appendChild(empty);
+    return;
+  }
+
+  History.list.forEach(rec => {
+    const row = el('div', 'star-day');
+    row.innerHTML =
+      '<div class="d">' + fmtDate(rec.date) + '</div>' +
+      '<div class="s">' + '⭐'.repeat(Math.max(1, rec.stars || 1)) + '</div>' +
+      '<div class="sum">' + (rec.summary || '') + '</div>';
+    body.appendChild(row);
+  });
+
+  body.appendChild(el('div', 'sub center mt',
+    '只记录自己的进步，不排名、不对比'));
+}
+
+/* =========================================================================
+   二十二、家长设置
+   ========================================================================= */
+/* 家长验证：一道简单个位数加法，防止孩子误入 */
+function askParentGate(){
+  const a = randInt(2, 9);
+  const b = randInt(2, 9);
+  const ans = a + b;
+
+  showModal(
+    '<h3>家长验证</h3>' +
+    '<p>请算出答案，验证后进入设置</p>' +
+    '<div style="font-size:26px;font-weight:800;text-align:center;margin-bottom:14px;">' +
+      a + ' + ' + b + ' = ?</div>' +
+    '<input id="gateInput" type="number" inputmode="numeric" ' +
+      'style="width:100%;height:56px;border-radius:18px;border:2px solid #EFE6DF;' +
+      'font-size:24px;text-align:center;font-family:inherit;outline:none;margin-bottom:16px;">' +
+    '<div class="row">' +
+      '<button class="btn" id="gateCancel">取消</button>' +
+      '<button class="btn primary" id="gateOk">进入</button>' +
+    '</div>',
+    { onMount(box){
+        const input = box.querySelector('#gateInput');
+        input.focus();
+        box.querySelector('#gateCancel').onclick = () => closeModal();
+        box.querySelector('#gateOk').onclick = () => {
+          if (parseInt(input.value, 10) === ans){
+            closeModal();
+            openSettings();
+          }else{
+            input.value = '';
+            input.placeholder = '再试一次';
+            TTS.say('再算一算哦');
+          }
+        };
+      } }
+  );
+}
+
+function openSettings(){
+  Screens.go('scr-settings');
+  renderSettings();
+}
+
+function renderSettings(){
+  const body = document.getElementById('settingsBody');
+  body.innerHTML = '';
+
+  /* —— 难度 —— */
+  const dCard = el('div', 'card mb');
+  dCard.innerHTML = '<div class="set-label">难度</div>'
+    + '<div class="set-desc">入门适合 6 岁左右；进阶会更快、更多</div>';
+  const seg = el('div', 'seg mt');
+  [['easy','入门'], ['hard','进阶']].forEach(([k, label]) => {
+    const b = el('button', Settings.get('difficulty') === k ? 'on' : '', label);
+    b.onclick = () => {
+      Settings.set('difficulty', k);
+      renderSettings();
+    };
+    seg.appendChild(b);
+  });
+  dCard.appendChild(seg);
+  dCard.appendChild(el('div', 'set-desc mt', '修改后，下次进入训练或游戏时生效'));
+  body.appendChild(dCard);
+
+  /* —— 开关组 —— */
+  const sCard = el('div', 'card mb');
+
+  sCard.appendChild(makeSwitchRow('语音播报', '关闭后只有文字，没有声音',
+    Settings.get('voice'), v => { Settings.set('voice', v); if (!v) TTS.stop(); }));
+
+  sCard.appendChild(makeSwitchRow('解锁自由游戏', '开启后可以从这里进入自由游戏',
+    Settings.get('freeGame'), v => { Settings.set('freeGame', v); renderSettings(); }));
+
+  /* 记住卡片单独加一档困难模式：给已经熟练的孩子用，默认关闭 */
+  sCard.appendChild(makeSwitchRow('记住卡片自定义难度',
+    '开启后，每日训练的「记住卡片」可以玩困难档（5 张目标）',
+    Settings.get('memoryCardCustom'), v => Settings.set('memoryCardCustom', v)));
+
+  body.appendChild(sCard);
+
+  /* —— 解锁后出现自由游戏入口 —— */
+  if (Settings.get('freeGame')){
+    const fBtn = el('button', 'btn sky mb', '进入自由游戏');
+    fBtn.style.width = '100%';
+    fBtn.onclick = () => { Screens.go('scr-free'); renderFreeList(); };
+    body.appendChild(fBtn);
+  }
+
+  /* —— 数据管理 —— */
+  const dBtn = el('button', 'btn peach', '清空全部记录');
+  dBtn.style.width = '100%';
+  dBtn.onclick = () => {
+    showModal(
+      '<h3>确定要清空吗？</h3>' +
+      '<p>确定要清空所有打卡记录和星星吗？清空后无法恢复哦</p>' +
+      '<div class="row">' +
+      '<button class="btn" id="clrNo">再想想</button>' +
+      '<button class="btn peach" id="clrYes">确定清空</button>' +
+      '</div>',
+      { onMount(box){
+          box.querySelector('#clrNo').onclick = () => closeModal();
+          box.querySelector('#clrYes').onclick = () => {
+            lsSet(LS.HISTORY, []);
+            Stars.reset();
+            Progress.clear();
+            lsSet(LS.POOL, {});
+            History.load(); Pool.load();
+            closeModal();
+            renderSettings();
+            TTS.say('已经清空啦');
+          };
+        } }
+    );
+  };
+  body.appendChild(dBtn);
+
+  /* —— 固定免责提示 —— */
+  const tip = el('div', 'sub mt');
+  tip.style.cssText = 'font-size:12px;line-height:1.7;opacity:.8;padding:12px 4px;';
+  tip.textContent = '本项目为家庭认知游戏训练，不属于医疗康复，如有发育问题请咨询儿科/发育行为科医生。';
+  body.appendChild(tip);
+
+  body.appendChild(el('div', 'sub mt',
+    '提示：清除浏览器缓存会丢失所有记录'));
+}
+
+function makeSwitchRow(label, desc, on, onChange){
+  const row = el('div', 'set-row');
+  const left = el('div', '');
+  left.innerHTML = '<div class="set-label">' + label + '</div>'
+    + '<div class="set-desc">' + desc + '</div>';
+  const sw = el('div', 'switch' + (on ? ' on' : ''));
+  sw.onclick = () => {
+    const next = !sw.classList.contains('on');
+    sw.classList.toggle('on', next);
+    onChange(next);
+  };
+  row.appendChild(left);
+  row.appendChild(sw);
+  return row;
+}
+
+/* =========================================================================
+   二十三、自由游戏
+   ========================================================================= */
+const FREE_GAMES = [
+  { key:'spot',    name:'找不一样',       icon:'🔍', desc:'在图案里找出不一样的那个', fn:gameSpot },
+  { key:'gonogo',  name:'听指令停一停',   icon:'🌸', desc:'看到小花点，看到炸弹忍住', fn:gameGoNoGo },
+  { key:'memory',  name:'记住卡片',       icon:'🃏', desc:'记住卡片再找出来',         fn:gameMemory },
+  { key:'switch',  name:'换个玩法',       icon:'🔄', desc:'规则会变，听清楚再点',     fn:gameSwitch },
+  { key:'order',   name:'排排队',         icon:'📋', desc:'把卡片排成正确顺序',       fn:gameOrder },
+  { key:'mood',    name:'猜猜心情',       icon:'😊', desc:'看看这张脸是什么心情',     fn:gameMood },
+  { key:'schulte', name:'数字舒尔特',     icon:'🔢', desc:'按顺序点数字，练眼力',     fn:gameSchulte }
+];
+
+let freeStop = false;
+let freeResolvers = [];
+/* 玩完/返回时该回到哪个页面：从首页直接进来就回首页，从列表进来就回列表 */
+let freeReturn = 'scr-free';
+
+function renderFreeList(){
+  const box = document.getElementById('freeList');
+  box.innerHTML = '';
+
+  // 家长未解锁 → 不显示列表
+  if (!Settings.get('freeGame')){
+    const tip = el('div', 'card center', '');
+    tip.innerHTML = '<div style="font-size:44px;margin-bottom:10px;">🔒</div>'
+      + '<div class="sub">自由游戏还没有解锁哦，请家长在设置里打开</div>';
+    box.appendChild(tip);
+    return;
+  }
+
+  const list = el('div', 'game-list');
+  FREE_GAMES.forEach(g => {
+    const item = el('div', 'game-item');
+    item.innerHTML = '<div class="ico">' + g.icon + '</div>'
+      + '<div><div class="nm">' + g.name + '</div>'
+      + '<div class="ds">' + g.desc + '</div></div>';
+    item.onclick = () => playFree(g);
+    list.appendChild(item);
+  });
+  box.appendChild(list);
+
+  box.appendChild(el('div', 'sub center mt', '自由游戏不算今天的训练，也不会加星星哦'));
+}
+
+async function playFree(g, from){
+  freeReturn = from || 'scr-free';
+  freeStop = false;
+  freeResolvers = [];
+
+  Screens.go('scr-play');
+  document.getElementById('playName').textContent = g.name;
+  document.getElementById('playStep').textContent = '自由游戏';
+
+  const host = newStage(document.getElementById('playHost'));
+
+  TTS.say(g.name + '，我们开始吧');
+
+  // 【修复 P2-11】自由模式给每个游戏一个"这一轮"的上限，
+  // 否则 6 个游戏都是 while(!shouldStop()) 无限循环，孩子只能按返回才能出来。
+  // 注意：gonogo 现在按「整轮过关」计数，所以上限是 3 轮而不是 20 个刺激
+  const LIMITS = { spot:12, gonogo:3, memory:3, switch:12, order:3, mood:8, schulte:9999 };
+  let qn = 0;
+  const limit = LIMITS[g.key] || 10;
+
+  const ctx = {
+    diff: Settings.get('difficulty'),
+    isFree: true,                                   // 自由模式：舒尔特才显示档位切换
+    shouldStop: () => freeStop || qn >= limit,
+    onQuestion: () => { qn++; },
+    onStop: (resolve) => { freeResolvers.push(resolve); },
+    pickPair: (kind) => {
+      const pool = SPOT_PAIRS
+        .filter(p => kind === 'cat' ? p.kind === 'cat' : p.kind === 'fine')
+        .map(p => ({ id: p.id, a: p.a, b: p.b }));
+      return Pool.pick(pool, 1, 'spot')[0];
+    },
+    pickSequence: () => {
+      const pool = SEQUENCES.map(s => ({ id: s.id, name: s.name, steps: s.steps }));
+      return Pool.pick(pool, 1, 'order')[0];
+    }
+  };
+
+  try{
+    await g.fn(host, ctx);
+  }catch(e){
+    console.error(e);
+  }
+
+  // 游戏结束后：到上限就给一个"这一轮完成"的收尾，否则直接回去
+  if (!freeStop && qn >= limit){
+    TTS.say('这一轮做完啦，真棒');
+    const backLabel = freeReturn === 'scr-home' ? '回到首页' : '回到游戏列表';
+    showModal(
+      '<h3>这一轮做完啦</h3>' +
+      '<p>歇一歇，或者换个游戏玩玩</p>' +
+      '<div class="row"><button class="btn primary" id="okBack">' + backLabel + '</button></div>',
+      { onMount(box){
+          box.querySelector('#okBack').onclick = () => { closeModal(); Screens.go(freeReturn); };
+        } }
+    );
+  }else if (!freeStop){
+    Screens.go(freeReturn);
+  }
+}
+
+/* ---------- 自由模式连续游玩 15 分钟提醒 ---------- */
+const FreeWatcher = {
+  ticker: null,
+  start(){
+    if (this.ticker) return;
+    this.ticker = new Ticker(1000, (e) => {
+      const onFree = (Screens.current === 'scr-free' || Screens.current === 'scr-play');
+      // 【修复 P1-3】只统计真正待在自由游戏相关页面的时间。
+      // 旧实现无论在首页停多久都累加，导致一进自由游戏就立刻弹"休息眼睛"。
+      if (!onFree){
+        this.ticker.elapsed = 0;
+        return;
+      }
+      if (e >= 15 * 60 * 1000){
+        this.ticker.elapsed = 0;      // 重置计时
+        this.pauseForRest();
+      }
+    });
+    this.ticker.start();
+  },
+  async pauseForRest(){
+    TTS.say('休息一下眼睛吧', { interrupt: true });
+    freeStop = true;
+    freeResolvers.splice(0).forEach(fn => { try{ fn(); }catch(e){} });
+
+    // 遮罩 60 秒，期间不可操作
+    let left = 60;
+    showModal(
+      '<h3>休息一下眼睛吧</h3>' +
+      '<p>看看远处，等 <b id="restLeft">60</b> 秒再继续</p>' +
+      '<div class="row"><button class="btn primary" id="restOk" disabled style="opacity:.5;">继续玩</button></div>',
+      { onMount(box){
+          const btn = box.querySelector('#restOk');
+          const span = box.querySelector('#restLeft');
+          const iv = setInterval(() => {
+            left--;
+            span.textContent = left;
+            if (left <= 0){
+              clearInterval(iv);
+              btn.disabled = false;
+              btn.style.opacity = 1;
+              btn.textContent = '继续玩';
+            }
+          }, 1000);
+          btn.onclick = () => {
+            if (btn.disabled) return;
+            clearInterval(iv);
+            closeModal();
+            Screens.go(freeReturn);
+          };
+        } }
+    );
+  }
+};
+
+/* =========================================================================
+   二十四、长按左上角退出训练
+   ========================================================================= */
+const ExitGuard = {
+  timer: null,
+  ring : null,
+  init(){
+    this.ring = document.getElementById('exitRing');
+    const hot = document.getElementById('exitHot');
+
+    const start = (e) => {
+      if ((Screens.current !== 'scr-train' && Screens.current !== 'scr-rest') || !Flow.running) return;
+      e.preventDefault();
+      this.ring.classList.add('run');
+      this.timer = setTimeout(() => {
+        this.ring.classList.remove('run');
+        this.confirmExit();
+      }, 3000);
+    };
+    const cancel = () => {
+      if (this.timer){ clearTimeout(this.timer); this.timer = null; }
+      this.ring.classList.remove('run');
+    };
+
+    hot.addEventListener('touchstart', start, { passive: false });
+    hot.addEventListener('touchend', cancel);
+    hot.addEventListener('touchcancel', cancel);
+    hot.addEventListener('mousedown', start);
+    hot.addEventListener('mouseup', cancel);
+    hot.addEventListener('mouseleave', cancel);
+  },
+  confirmExit(){
+    // 【修复 P2-12】弹窗期间暂停本模块计时：
+    // 否则孩子长按后犹豫十几秒，回来发现这一关的时间被白白消耗了。
+    const tk = Flow.moduleTicker;
+    if (tk) tk.pause();
+    const resume = () => { if (tk) tk.resume(); };
+
+    showModal(
+      '<h3>要休息一下吗？</h3>' +
+      '<p>现在退出的话，这一关的进度会保存，下次可以接着做</p>' +
+      '<div class="row">' +
+      '<button class="btn primary" id="exitNo">继续训练</button>' +
+      '<button class="btn" id="exitYes">先退出</button>' +
+      '</div>',
+      { onMount(box){
+          box.querySelector('#exitNo').onclick = () => { closeModal(); resume(); };
+          box.querySelector('#exitYes').onclick = () => {
+            closeModal();
+            Flow.leaveIfNeeded();
+            Screens.go('scr-home');
+          };
+        } }
+    );
+  }
+};
+
+/* =========================================================================
+   二十五、首页与全局按钮
+   ========================================================================= */
+function updateMuteIcon(){
+  const btn = document.getElementById('muteBtn');
+  btn.textContent = Settings.get('muted') ? '🔇' : '🔊';
+  btn.title = Settings.get('muted') ? '已静音' : '声音开';
+}
+
+function initUI(){
+  /* 静音按钮 */
+  document.getElementById('muteBtn').onclick = () => {
+    const next = !Settings.get('muted');
+    Settings.set('muted', next);
+    if (next) TTS.stop();
+    updateMuteIcon();
+    if (!next) TTS.say('声音打开啦');
+  };
+
+  /* 首页三个主按钮 */
+  document.getElementById('btnStart').onclick = () => Flow.start();
+  document.getElementById('btnStars').onclick  = () => { Screens.go('scr-stars'); renderStars(); };
+  document.getElementById('btnSettings').onclick = () => askParentGate();
+
+  /* 首页直达「数字舒尔特」：不用进家长设置、不用解锁自由游戏，点一下就能玩 */
+  document.getElementById('btnSchulte').onclick = () => {
+    const g = FREE_GAMES.find(x => x.key === 'schulte');
+    if (g) playFree(g, 'scr-home');
+  };
+
+  /* 返回按钮 */
+  document.getElementById('btnSettingsBack').onclick = () => Screens.go('scr-home');
+  document.getElementById('btnStarsBack').onclick    = () => Screens.go('scr-home');
+  document.getElementById('btnFreeBack').onclick     = () => Screens.go('scr-home');
+  document.getElementById('btnPlayBack').onclick     = () => {
+    freeStop = true;
+    freeResolvers.splice(0).forEach(fn => { try{ fn(); }catch(e){} });
+    Screens.go(freeReturn);
+  };
+
+  ExitGuard.init();
+  updateMuteIcon();
+  FreeWatcher.start();
+}
+
+/* =========================================================================
+   二十六、启动
+   ========================================================================= */
+function boot(){
+  Settings.load();
+  Progress.load();
+  History.load();
+  Pool.load();
+
+  TTS.init();
+  initUI();
+
+  // 初始页面标记，供 CSS 区分字幕位置等
+  document.body.setAttribute('data-screen', 'scr-home');
+
+  // 首页底部提示随设置变化
+  console.log('小小脑袋训练营 ready');
+}
+
+boot();
+
+/* =========================================================================
+   自测钩子（正式使用不会触发）
+   在浏览器地址末尾加 #dev=spot / #dev=settings 等，可直接跳到对应页面，
+   方便家长或开发者快速检查某一关的排版。不带 #dev= 时完全不执行。
+   ========================================================================= */
+(function devHook(){
+  // 【修复 P2-9】只保留"排版自检"用的只读入口。
+  // 原来的 #dev=free / #dev=end / #dev=<游戏名> 能绕过家长验证解锁自由游戏、
+  // 甚至直接打卡领星星，孩子偶然输入就能破解家长锁，已全部移除。
+  const m = (location.hash || '').match(/^#dev=([a-z]+)$/i);
+  if (!m) return;
+  const key = m[1].toLowerCase();
+  try{
+    if (key === 'settings'){ askParentGate(); return; }   // 仍走家长算术验证
+    if (key === 'stars'){ Screens.go('scr-stars'); renderStars(); return; }
+  }catch(e){ console.error('dev hook', e); }
+})();
+
+/* =========================================================================
+   ============================ 使用教程 ====================================
+   =========================================================================
+
+   【电脑端】
+   1. 把本文件保存为 .html 结尾的文件（例如：小小脑袋训练营.html）
+   2. 双击它，用 Chrome / Edge 打开即可运行，无需联网、无需安装
+
+   【手机 / 微信端】
+   1. 把 html 文件发送到微信（发给"文件传输助手"或自己）
+   2. 在微信里点开该文件，右上角选择"在浏览器打开"
+   3. 建议使用手机自带浏览器或 Chrome，体验更稳定
+
+   【家长设置入口】
+   首页 → 家长设置 → 先做一道加法题验证（防止孩子误入）
+   在里面可以：切换难度、开关语音、解锁自由游戏、开启「记住卡片自定义难度」、清空记录
+
+   【听指令停一停】
+   规则比较严格：一轮 10 个图案，必须零失误才算过关。
+   该点的小花没点到，或者不该点的炸弹点了一下，本轮立刻作废，
+   换一组新顺序从头再来（会温柔提示规则，不算扣分、不显示"错误"）。
+   入门档每个图案显示 1.2 秒、炸弹 2 个；进阶档 0.8 秒、炸弹 4 个。
+
+   【记住卡片】
+   三档：简单（3 张目标 / 5 张候选）、一般（4/7）、困难（5/9）。
+   每日训练里：入门→简单、进阶→一般；在家长设置里打开「记住卡片自定义难度」后，每日训练可用困难档。
+   自由游戏里：游戏页面内可直接切换三档，选择会记住。
+   全程卡片正面朝上，不翻面；先看 5 秒，再从候选区选出刚才见过的所有卡片。
+
+   【数字舒尔特】
+   首页有独立入口「数字舒尔特」，点一下直接进游戏，不需要家长验证、也不需要解锁自由游戏。
+   游戏内可切 3×3 / 4×4 / 7×7 三档；只有点对数字 1 才开始计时。
+
+   【每日训练】
+   6 个模块顺序固定：找不一样 → 听指令停一停 → 记住卡片 → 换个玩法 → 排排队 → 猜猜心情
+   模块之间强制休息 30 秒，全程约 25~32 分钟
+   完成全部模块后发放 1 颗星星，每天只能打卡一次
+
+   【中途退出】
+   训练中没有返回按钮。长按屏幕左上角 3 秒，会出现退出确认
+   退出后进度会保留，当天再次进入会询问"继续上次 / 重新开始"
+
+   【自由游戏】
+   需要家长在设置里"解锁自由游戏"后，在自由游戏页选择
+   不算打卡、不加星星；连续玩满 15 分钟会自动提醒休息 1 分钟
+
+   【已知限制】
+   1. 微信内置浏览器的语音合成（Web Speech API）存在偶发兼容性问题：
+      可能没有声音、或只播第一句。遇到这种情况请在系统浏览器中打开，
+      或直接关闭语音开关，用纯文字模式游玩。
+   2. 所有记录保存在浏览器 localStorage 中，清除浏览器缓存 / 换浏览器 /
+      使用无痕模式，都会导致记录丢失，且无法恢复。
+   3. 本文件不引用任何网络图片，全部图形使用 emoji 呈现，因此不存在
+      图片链接过期的问题，断网也能正常显示。
+   4. 部分安卓机的"省电模式"会在后台杀掉页面，导致计时暂停；
+      回到页面后会自动继续，不会跳关。
+   5. 横屏时页面会提示"请竖屏使用哦"，这是正常设计。
+
+   【重要声明】
+   本项目为家庭趣味认知游戏，仅供亲子互动娱乐使用，
+   不属于医疗康复手段，也不提供任何评估、诊断功能。
+   如对孩子发育有疑问，请咨询儿科 / 发育行为科医生。
+
+   ========================================================================= */
+
+</script>
+</body>
+</html>
